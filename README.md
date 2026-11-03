@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="art/social-preview-1280x640.png" width="640" alt="Janelas de projeto soltas viram abas numa janela só">
+</p>
+
 # Window Tabs
 
 Plugin para PhpStorm e GoLand (e qualquer IDE JetBrains 2026.1+) que mostra os projetos abertos como abas no topo de
@@ -70,3 +74,10 @@ Settings → Plugins → ⚙ → Install Plugin from Disk… → escolher o zip.
 
 A faixa usa o extension point `ideRootPaneNorth`, marcado como interno pela JetBrains. O `verifyPlugin` aceita
 (só falha por incompatibilidade real), mas uma versão futura da IDE pode mudar essa API.
+
+## Repositório
+
+O código vive em [gitlab.com/danie1net0/window-tabs](https://gitlab.com/danie1net0/window-tabs).
+[github.com/danie1net0/window-tabs](https://github.com/danie1net0/window-tabs) é um espelho somente leitura,
+atualizado pelo push mirror do GitLab a cada push.
+
