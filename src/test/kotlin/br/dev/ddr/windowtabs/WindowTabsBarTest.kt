@@ -1,12 +1,19 @@
 package br.dev.ddr.windowtabs
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.awt.Component
+import java.awt.Frame
 import java.awt.event.MouseEvent
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
@@ -52,12 +59,11 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertEquals("later", placeholder.title().text)
         assertEquals("Reopening /work/later", placeholder.toolTipText)
         assertEquals(
-            com.intellij.util.ui.UIUtil
-                .getLabelDisabledForeground(),
+            UIUtil.getLabelDisabledForeground(),
             placeholder.title().foreground,
         )
         assertSame(
-            com.intellij.ui.AnimatedIcon.Default.INSTANCE,
+            AnimatedIcon.Default.INSTANCE,
             placeholder.components
                 .filterIsInstance<JBLabel>()
                 .first { it.text.isNullOrEmpty() }
@@ -108,7 +114,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
 
         click(bar.tabs()[1], MouseEvent.BUTTON1)
 
-        verify(destination, org.mockito.Mockito.times(2)).extendedState = java.awt.Frame.NORMAL
+        verify(destination, times(2)).extendedState = Frame.NORMAL
         assertEquals(listOf(other), focused)
     }
 
@@ -121,7 +127,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         click(bar.tabs()[1], MouseEvent.BUTTON3)
         dispatchEvents()
 
-        org.mockito.Mockito.verifyNoInteractions(windowManager)
+        verifyNoInteractions(windowManager)
         assertFalse(other.isDisposed)
     }
 
@@ -145,9 +151,9 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         mouse(tab, MouseEvent.MOUSE_ENTERED, 10, 10)
         assertTrue(close.isVisible)
         mouse(close, MouseEvent.MOUSE_ENTERED, 1, 1)
-        assertSame(com.intellij.icons.AllIcons.Actions.CloseHovered, close.icon)
+        assertSame(AllIcons.Actions.CloseHovered, close.icon)
         mouse(close, MouseEvent.MOUSE_EXITED, 1, 1)
-        assertSame(com.intellij.icons.AllIcons.Actions.Close, close.icon)
+        assertSame(AllIcons.Actions.Close, close.icon)
         mouse(tab, MouseEvent.MOUSE_EXITED, -5, -5)
         assertFalse(close.isVisible)
 
@@ -161,8 +167,8 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val calls = mutableListOf<AnActionEvent>()
         val recorder =
             object : AnAction() {
-                override fun actionPerformed(e: AnActionEvent) {
-                    calls.add(e)
+                override fun actionPerformed(event: AnActionEvent) {
+                    calls.add(event)
                 }
             }
         val actionManager = ActionManager.getInstance()
@@ -211,8 +217,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
 
         assertEquals(
             bar.background,
-            com.intellij.util.ui.JBUI.CurrentTheme.EditorTabs
-                .background(),
+            JBUI.CurrentTheme.EditorTabs.background(),
         )
     }
 
@@ -228,12 +233,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         target: Component,
         button: Int,
     ) {
-        val mask =
-            when (button) {
-                MouseEvent.BUTTON2 -> MouseEvent.BUTTON2_DOWN_MASK
-                MouseEvent.BUTTON3 -> MouseEvent.BUTTON3_DOWN_MASK
-                else -> MouseEvent.BUTTON1_DOWN_MASK
-            }
+        val mask = BUTTON_MASKS.getValue(button)
         target.dispatchEvent(MouseEvent(target, MouseEvent.MOUSE_CLICKED, 0, mask, 1, 1, 1, false, button))
     }
 
@@ -245,5 +245,14 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     ) {
         target.dispatchEvent(MouseEvent(target, id, 0, 0, x, y, 0, false))
         SwingUtilities.invokeLater { }
+    }
+
+    private companion object {
+        val BUTTON_MASKS =
+            mapOf(
+                MouseEvent.BUTTON1 to MouseEvent.BUTTON1_DOWN_MASK,
+                MouseEvent.BUTTON2 to MouseEvent.BUTTON2_DOWN_MASK,
+                MouseEvent.BUTTON3 to MouseEvent.BUTTON3_DOWN_MASK,
+            )
     }
 }

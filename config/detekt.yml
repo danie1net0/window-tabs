@@ -3,3 +3,20 @@ naming:
   FunctionNaming:
     # Test names use backticks.
     excludes: ['**/test/**']
+
+# Global readability rule: every control-structure body has braces, and the flow stays flat.
+style:
+  BracesOnIfStatements:
+    active: true
+    singleLine: 'always'
+    multiLine: 'always'
+  BracesOnWhenStatements:
+    active: true
+    singleLine: 'necessary'
+    multiLine: 'consistent'
+  MandatoryBracesLoops:
+    active: true
+complexity:
+  NestedBlockDepth:
+    active: true
+    allowedDepth: 3

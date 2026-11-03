@@ -32,13 +32,16 @@ class WindowTabsBar(
     init {
         isOpaque = true
         border = JBUI.Borders.customLineBottom(JBColor.border())
+
         add(tabs, BorderLayout.CENTER)
         add(newProjectButton(), BorderLayout.EAST)
+
         rebuild()
     }
 
     override fun addNotify() {
         super.addNotify()
+
         val disposable = Disposer.newDisposable("WindowTabsBar")
         ApplicationManager
             .getApplication()
@@ -46,12 +49,14 @@ class WindowTabsBar(
             .connect(disposable)
             .subscribe(WindowTabsListener.TOPIC, WindowTabsListener { rebuild() })
         connection = disposable
+
         rebuild()
     }
 
     override fun removeNotify() {
         connection?.let { Disposer.dispose(it) }
         connection = null
+
         super.removeNotify()
     }
 
@@ -63,9 +68,11 @@ class WindowTabsBar(
         }
 
         val windowTabs = WindowTabsService.getInstance().tabs(project)
+
         tabs.removeAll()
         windowTabs.forEach { tabs.add(view(it)) }
         isVisible = windowTabs.size > 1
+
         revalidate()
         repaint()
     }
@@ -81,13 +88,18 @@ class WindowTabsBar(
         button.border = JBUI.Borders.empty(0, PLUS_PADDING)
         button.toolTipText = "Open project"
         button.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+
         button.addMouseListener(
             object : MouseAdapter() {
-                override fun mouseClicked(e: MouseEvent) {
+                override fun mouseClicked(event: MouseEvent) {
                     val actionManager = ActionManager.getInstance()
-                    actionManager.getAction(OPEN_PROJECT_ACTION)?.let {
-                        actionManager.tryToExecute(it, e, button, ActionPlaces.TOOLBAR, true)
+                    val openProject = actionManager.getAction(OPEN_PROJECT_ACTION)
+
+                    if (openProject == null) {
+                        return
                     }
+
+                    actionManager.tryToExecute(openProject, event, button, ActionPlaces.TOOLBAR, true)
                 }
             },
         )
@@ -118,18 +130,19 @@ class WindowTabsBar(
 
             closeButton.toolTipText = "Close project"
             closeButton.isVisible = false
+
             closeButton.addMouseListener(
                 object : MouseAdapter() {
-                    override fun mouseEntered(e: MouseEvent) {
+                    override fun mouseEntered(event: MouseEvent) {
                         closeButton.icon = AllIcons.Actions.CloseHovered
                     }
 
-                    override fun mouseExited(e: MouseEvent) {
+                    override fun mouseExited(event: MouseEvent) {
                         closeButton.icon = AllIcons.Actions.Close
-                        updateHover(e)
+                        updateHover(event)
                     }
 
-                    override fun mouseClicked(e: MouseEvent) {
+                    override fun mouseClicked(event: MouseEvent) {
                         WindowTabsService.getInstance().close(target)
                     }
                 },
@@ -138,18 +151,18 @@ class WindowTabsBar(
 
             addMouseListener(
                 object : MouseAdapter() {
-                    override fun mouseEntered(e: MouseEvent) = updateHover(e)
+                    override fun mouseEntered(event: MouseEvent) = updateHover(event)
 
-                    override fun mouseExited(e: MouseEvent) = updateHover(e)
+                    override fun mouseExited(event: MouseEvent) = updateHover(event)
 
-                    override fun mouseClicked(e: MouseEvent) {
-                        if (SwingUtilities.isMiddleMouseButton(e)) {
+                    override fun mouseClicked(event: MouseEvent) {
+                        if (SwingUtilities.isMiddleMouseButton(event)) {
                             WindowTabsService.getInstance().close(target)
 
                             return
                         }
 
-                        if (SwingUtilities.isLeftMouseButton(e) && !selected) {
+                        if (SwingUtilities.isLeftMouseButton(event) && !selected) {
                             WindowTabsService.getInstance().switchTo(project, target)
                         }
                     }
@@ -157,30 +170,32 @@ class WindowTabsBar(
             )
         }
 
-        private fun updateHover(e: MouseEvent) {
-            val point = SwingUtilities.convertPoint(e.component, e.point, this)
+        private fun updateHover(event: MouseEvent) {
+            val point = SwingUtilities.convertPoint(event.component, event.point, this)
             hovered = contains(point)
             closeButton.isVisible = hovered
+
             repaint()
         }
 
-        override fun paintComponent(g: Graphics) {
-            super.paintComponent(g)
+        override fun paintComponent(graphics: Graphics) {
+            super.paintComponent(graphics)
 
             if (hovered) {
-                g.color = JBUI.CurrentTheme.EditorTabs.hoverBackground()
-                g.fillRect(0, 0, width, height)
+                graphics.color = JBUI.CurrentTheme.EditorTabs.hoverBackground()
+                graphics.fillRect(0, 0, width, height)
             }
 
             if (selected) {
-                g.color = JBUI.CurrentTheme.EditorTabs.underlinedTabBackground()
-                g.fillRect(0, 0, width, height)
-                g.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
+                graphics.color = JBUI.CurrentTheme.EditorTabs.underlinedTabBackground()
+                graphics.fillRect(0, 0, width, height)
+
+                graphics.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
                 val thickness = JBUI.scale(2)
-                g.fillRect(0, height - thickness, width, thickness)
+                graphics.fillRect(0, height - thickness, width, thickness)
             }
 
-            paintSeparator(g)
+            paintSeparator(graphics)
         }
     }
 
@@ -196,26 +211,28 @@ class WindowTabsBar(
             val title = JBLabel(tab.name, SwingConstants.CENTER)
             title.font = JBUI.Fonts.label().asPlain()
             title.foreground = UIUtil.getLabelDisabledForeground()
+
             add(title, BorderLayout.CENTER)
             add(JBLabel(AnimatedIcon.Default.INSTANCE), BorderLayout.WEST)
         }
 
-        override fun paintComponent(g: Graphics) {
-            super.paintComponent(g)
-            paintSeparator(g)
+        override fun paintComponent(graphics: Graphics) {
+            super.paintComponent(graphics)
+
+            paintSeparator(graphics)
         }
     }
 
     companion object {
         const val OPEN_PROJECT_ACTION = "OpenFile"
 
-        private fun JPanel.paintSeparator(g: Graphics) {
-            g.color = JBColor.border()
-            g.fillRect(width - 1, 0, 1, height)
-        }
-
         private const val PLUS_PADDING = 10
         private const val TAB_VERTICAL_PADDING = 5
         private const val TAB_HORIZONTAL_PADDING = 8
+
+        private fun JPanel.paintSeparator(graphics: Graphics) {
+            graphics.color = JBColor.border()
+            graphics.fillRect(width - 1, 0, 1, height)
+        }
     }
 }

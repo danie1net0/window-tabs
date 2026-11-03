@@ -10,7 +10,10 @@ sealed interface WindowTab {
     class Open(
         val project: Project,
     ) : WindowTab {
-        // basePath is only null for the default project, which never has a window.
+        /**
+         * The project's path, the same string the IDE keeps for it in the last session.
+         * Only the default project has no path, and it never gets a window.
+         */
         override val key = project.basePath.toString()
     }
 

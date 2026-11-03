@@ -42,10 +42,10 @@ class ReopeningProjectsTest : WindowTabsTestCase() {
 
     fun `test the last session's open projects, oldest first, skipping closed and hidden ones`() {
         withLastSession(
-            "/work/second" to meta(opened = true, timestamp = 2, displayName = "Second"),
-            "/work/first" to meta(opened = true, timestamp = 1),
-            "/work/closed" to meta(opened = false, timestamp = 3),
-            "/work/hidden" to meta(opened = true, timestamp = 4, hidden = true),
+            "/work/second" to projectInfo(opened = true, timestamp = 2, displayName = "Second"),
+            "/work/first" to projectInfo(opened = true, timestamp = 1),
+            "/work/closed" to projectInfo(opened = false, timestamp = 3),
+            "/work/hidden" to projectInfo(opened = true, timestamp = 4, hidden = true),
         ) {
             val projects = ReopeningProjects.fromLastSession()
 
@@ -55,24 +55,24 @@ class ReopeningProjectsTest : WindowTabsTestCase() {
     }
 
     fun `test nothing to wait for when the IDE does not reopen projects`() {
-        withLastSession("/work/first" to meta(opened = true, timestamp = 1), reopen = false) {
+        withLastSession("/work/first" to projectInfo(opened = true, timestamp = 1), reopen = false) {
             assertEmpty(ReopeningProjects.fromLastSession())
         }
     }
 
-    private fun meta(
+    private fun projectInfo(
         opened: Boolean,
         timestamp: Long,
         hidden: Boolean = false,
         displayName: String? = null,
     ): RecentProjectMetaInfo {
-        val info = RecentProjectMetaInfo()
-        info.opened = opened
-        info.hidden = hidden
-        info.projectOpenTimestamp = timestamp
-        info.displayName = displayName
+        val projectInfo = RecentProjectMetaInfo()
+        projectInfo.opened = opened
+        projectInfo.hidden = hidden
+        projectInfo.projectOpenTimestamp = timestamp
+        projectInfo.displayName = displayName
 
-        return info
+        return projectInfo
     }
 
     /** Swaps the recent-projects state and the reopen setting for the length of [block]. */
@@ -83,16 +83,16 @@ class ReopeningProjectsTest : WindowTabsTestCase() {
     ) {
         val settings = GeneralSettings.getInstance()
         val savedReopen = settings.isReopenLastProject
-        val info = RecentProjectsManagerBase.getInstanceEx().state.additionalInfo
-        val saved = info.toMap()
+        val additionalInfo = RecentProjectsManagerBase.getInstanceEx().state.additionalInfo
+        val saved = additionalInfo.toMap()
         settings.isReopenLastProject = reopen
-        info.clear()
-        info.putAll(entries)
+        additionalInfo.clear()
+        additionalInfo.putAll(entries)
         try {
             block()
         } finally {
-            info.clear()
-            info.putAll(saved)
+            additionalInfo.clear()
+            additionalInfo.putAll(saved)
             settings.isReopenLastProject = savedReopen
         }
     }

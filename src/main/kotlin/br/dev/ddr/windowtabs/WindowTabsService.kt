@@ -27,8 +27,9 @@ class WindowTabsService {
      */
     fun tabs(current: Project): List<WindowTab> {
         val open = (ProjectManager.getInstance().openProjects.toList() + current).distinct()
+
         val byKey = mutableMapOf<String, WindowTab>()
-        open.forEach { byKey[it.basePath.toString()] = WindowTab.Open(it) }
+        open.map { WindowTab.Open(it) }.forEach { byKey[it.key] = it }
         reopening.remaining(byKey.keys).forEach { byKey[it.key] = it }
 
         return order.sync(byKey.keys.toList()).map { byKey.getValue(it) }
@@ -71,9 +72,11 @@ class WindowTabsService {
 
     fun close(project: Project) {
         ApplicationManager.getApplication().invokeLater {
-            if (!project.isDisposed) {
-                ProjectManager.getInstance().closeAndDispose(project)
+            if (project.isDisposed) {
+                return@invokeLater
             }
+
+            ProjectManager.getInstance().closeAndDispose(project)
         }
     }
 

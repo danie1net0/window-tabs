@@ -1,11 +1,16 @@
 package br.dev.ddr.windowtabs
 
+import com.intellij.testFramework.PlatformTestUtil
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.awt.Frame
 import java.awt.Rectangle
+import java.nio.file.Files
 
 class WindowTabsServiceTest : WindowTabsTestCase() {
     private val service get() = WindowTabsService.getInstance()
@@ -47,18 +52,13 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
     }
 
     fun `test a reopened project takes its placeholder's place`() {
-        val directory =
-            java.nio.file.Files
-                .createTempDirectory("late")
+        val directory = Files.createTempDirectory("late")
         val path = directory.toString()
         service.expectReopening(listOf(WindowTab.Reopening(path, "late"), WindowTab.Reopening("/work/last", "last")))
         service.tabs(project)
 
-        java.nio.file.Files
-            .createDirectories(directory.resolve(".idea"))
-        val late =
-            com.intellij.testFramework.PlatformTestUtil
-                .loadAndOpenProject(directory, testRootDisposable)
+        Files.createDirectories(directory.resolve(".idea"))
+        val late = PlatformTestUtil.loadAndOpenProject(directory, testRootDisposable)
         val tabs = service.tabs(project)
 
         assertEquals(listOf(project.basePath, late.basePath, "/work/last"), tabs.map { it.key })
@@ -107,7 +107,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         service.switchTo(project, target)
 
         verify(destination).bounds = Rectangle(10, 20, 1000, 700)
-        verify(destination, org.mockito.Mockito.times(2)).extendedState = Frame.NORMAL
+        verify(destination, times(2)).extendedState = Frame.NORMAL
         assertEquals(listOf(target), focused)
     }
 
@@ -121,7 +121,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
 
         service.switchTo(project, target)
 
-        verify(destination, never()).bounds = org.mockito.ArgumentMatchers.any()
+        verify(destination, never()).bounds = any()
         verify(destination).extendedState = Frame.MAXIMIZED_BOTH
     }
 
@@ -133,7 +133,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
 
         service.switchTo(project, target)
 
-        verify(destination, never()).extendedState = org.mockito.ArgumentMatchers.anyInt()
+        verify(destination, never()).extendedState = anyInt()
         assertEquals(listOf(target), focused)
     }
 
