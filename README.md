@@ -79,5 +79,5 @@ A faixa usa o extension point `ideRootPaneNorth`, marcado como interno pela JetB
 
 O código vive em [gitlab.com/danie1net0/window-tabs](https://gitlab.com/danie1net0/window-tabs).
 [github.com/danie1net0/window-tabs](https://github.com/danie1net0/window-tabs) é um espelho somente leitura,
-atualizado pelo push mirror do GitLab a cada push.
+copiado do GitLab a cada 6 horas pelo workflow `.github/workflows/mirror.yml` (ou na hora, pela aba Actions).
 
