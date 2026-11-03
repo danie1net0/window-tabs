@@ -1,0 +1,5 @@
+# Only overrides on top of detekt's default rule set.
+naming:
+  FunctionNaming:
+    # Test names use backticks.
+    excludes: ['**/test/**']

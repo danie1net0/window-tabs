@@ -1,0 +1,23 @@
+<idea-plugin>
+    <id>com.danielneto.projecttabs</id>
+    <name>Project Tabs</name>
+    <vendor email="danielneto314@gmail.com">Daniel Neto</vendor>
+
+    <description><![CDATA[
+    Shows every open project as a tab across the top of each IDE window, like the native window tabs on macOS.
+    Clicking a tab moves that project's window over the current one and brings it to the front.
+    Middle-click or the close icon closes the project.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <ideRootPaneNorth implementation="com.danielneto.projecttabs.ProjectTabsNorthExtension"/>
+        <postStartupActivity implementation="com.danielneto.projecttabs.ProjectTabsOpenActivity"/>
+    </extensions>
+
+    <applicationListeners>
+        <listener class="com.danielneto.projecttabs.ProjectTabsCloseListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </applicationListeners>
+</idea-plugin>
