@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import java.awt.Frame
 import java.awt.Rectangle

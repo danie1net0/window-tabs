@@ -1,12 +1,12 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import kotlinx.coroutines.runBlocking
 
-class ProjectTabsLifecycleTest : ProjectTabsTestCase() {
+class WindowTabsLifecycleTest : WindowTabsTestCase() {
     fun `test opening a project refreshes the tabs`() {
         val calls = recordTabsChanged()
 
-        runBlocking { ProjectTabsOpenActivity().execute(project) }
+        runBlocking { WindowTabsOpenActivity().execute(project) }
         dispatchEvents()
 
         assertEquals(1, calls())
@@ -15,7 +15,7 @@ class ProjectTabsLifecycleTest : ProjectTabsTestCase() {
     fun `test closing a project refreshes the tabs`() {
         val calls = recordTabsChanged()
 
-        ProjectTabsCloseListener().projectClosed(project)
+        WindowTabsCloseListener().projectClosed(project)
         dispatchEvents()
 
         assertEquals(1, calls())

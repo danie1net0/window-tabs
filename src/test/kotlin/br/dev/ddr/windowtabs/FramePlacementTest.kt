@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame

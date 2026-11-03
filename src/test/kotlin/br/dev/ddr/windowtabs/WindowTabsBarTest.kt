@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -12,9 +12,9 @@ import java.awt.image.BufferedImage
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
-class ProjectTabsBarTest : ProjectTabsTestCase() {
+class WindowTabsBarTest : WindowTabsTestCase() {
     fun `test hidden while only one project is open`() {
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
 
         assertFalse(bar.isVisible)
         assertEquals(1, bar.tabs().size)
@@ -22,7 +22,7 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
 
     fun `test one tab per project with the frame's own project selected`() {
         val other = openAnotherProject("other")
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
 
         assertTrue(bar.isVisible)
         assertEquals(listOf(project.name, "other"), bar.tabs().map { it.title().text })
@@ -43,23 +43,23 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
     }
 
     fun `test refreshes when told the tabs changed while shown`() {
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
         bar.addNotify()
         openAnotherProject("other")
 
-        ProjectTabsService.getInstance().notifyChanged()
+        WindowTabsService.getInstance().notifyChanged()
         dispatchEvents()
 
         assertEquals(2, bar.tabs().size)
     }
 
     fun `test stops listening once removed`() {
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
         bar.addNotify()
         bar.removeNotify()
         openAnotherProject("other")
 
-        ProjectTabsService.getInstance().notifyChanged()
+        WindowTabsService.getInstance().notifyChanged()
         dispatchEvents()
 
         assertEquals(1, bar.tabs().size)
@@ -69,7 +69,7 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
     fun `test a disposed project builds no tabs`() {
         val disposed = closedProject()
 
-        val bar = ProjectTabsBar(disposed)
+        val bar = WindowTabsBar(disposed)
 
         assertEmpty(bar.tabs())
     }
@@ -81,7 +81,7 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
         val destination = fakeFrame()
         `when`(windowManager.getFrame(project)).thenReturn(source)
         `when`(windowManager.getFrame(other)).thenReturn(destination)
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
 
         click(bar.tabs()[1], MouseEvent.BUTTON1)
 
@@ -92,7 +92,7 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
     fun `test clicking the selected tab or with the right button does nothing`() {
         val other = openAnotherProject("other")
         val windowManager = fakeWindowManager()
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
 
         click(bar.tabs()[0], MouseEvent.BUTTON1)
         click(bar.tabs()[1], MouseEvent.BUTTON3)
@@ -104,7 +104,7 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
 
     fun `test middle click closes the tab's project`() {
         val other = openAnotherProject("other")
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
 
         click(bar.tabs()[1], MouseEvent.BUTTON2)
         dispatchEvents()
@@ -114,7 +114,7 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
 
     fun `test close button shows on hover and closes the project`() {
         val other = openAnotherProject("other")
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
         val tab = bar.tabs()[1]
         tab.setSize(200, 30)
         val close = tab.closeButton()
@@ -143,13 +143,13 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
                 }
             }
         val actionManager = ActionManager.getInstance()
-        val original = actionManager.getAction(ProjectTabsBar.OPEN_PROJECT_ACTION)
-        actionManager.replaceAction(ProjectTabsBar.OPEN_PROJECT_ACTION, recorder)
+        val original = actionManager.getAction(WindowTabsBar.OPEN_PROJECT_ACTION)
+        actionManager.replaceAction(WindowTabsBar.OPEN_PROJECT_ACTION, recorder)
         try {
-            click(ProjectTabsBar(project).plusButton(), MouseEvent.BUTTON1)
+            click(WindowTabsBar(project).plusButton(), MouseEvent.BUTTON1)
             dispatchEvents()
         } finally {
-            actionManager.replaceAction(ProjectTabsBar.OPEN_PROJECT_ACTION, original)
+            actionManager.replaceAction(WindowTabsBar.OPEN_PROJECT_ACTION, original)
         }
 
         assertEquals(1, calls.size)
@@ -157,20 +157,20 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
 
     fun `test plus button does nothing when the open project action is missing`() {
         val actionManager = ActionManager.getInstance()
-        val original = actionManager.getAction(ProjectTabsBar.OPEN_PROJECT_ACTION)
-        actionManager.unregisterAction(ProjectTabsBar.OPEN_PROJECT_ACTION)
+        val original = actionManager.getAction(WindowTabsBar.OPEN_PROJECT_ACTION)
+        actionManager.unregisterAction(WindowTabsBar.OPEN_PROJECT_ACTION)
         try {
-            click(ProjectTabsBar(project).plusButton(), MouseEvent.BUTTON1)
+            click(WindowTabsBar(project).plusButton(), MouseEvent.BUTTON1)
             dispatchEvents()
         } finally {
-            actionManager.registerAction(ProjectTabsBar.OPEN_PROJECT_ACTION, original)
+            actionManager.registerAction(WindowTabsBar.OPEN_PROJECT_ACTION, original)
         }
     }
 
     fun `test paints selected, hovered and plain tabs`() {
         openAnotherProject("hovered")
         openAnotherProject("plain")
-        val bar = ProjectTabsBar(project)
+        val bar = WindowTabsBar(project)
         bar.setSize(600, 30)
         bar.doLayout()
         bar.tabs().forEach {
@@ -191,9 +191,9 @@ class ProjectTabsBarTest : ProjectTabsTestCase() {
         )
     }
 
-    private fun ProjectTabsBar.tabs(): List<JPanel> = (getComponent(0) as JPanel).components.map { it as JPanel }
+    private fun WindowTabsBar.tabs(): List<JPanel> = (getComponent(0) as JPanel).components.map { it as JPanel }
 
-    private fun ProjectTabsBar.plusButton(): JBLabel = getComponent(1) as JBLabel
+    private fun WindowTabsBar.plusButton(): JBLabel = getComponent(1) as JBLabel
 
     private fun JPanel.title(): JBLabel = components.filterIsInstance<JBLabel>().first { !it.text.isNullOrEmpty() }
 

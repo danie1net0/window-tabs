@@ -1,17 +1,17 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.startup.ProjectActivity
 
-class ProjectTabsOpenActivity : ProjectActivity {
+class WindowTabsOpenActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
-        ProjectTabsService.getInstance().notifyChanged()
+        WindowTabsService.getInstance().notifyChanged()
     }
 }
 
-class ProjectTabsCloseListener : ProjectManagerListener {
+class WindowTabsCloseListener : ProjectManagerListener {
     override fun projectClosed(project: Project) {
-        ProjectTabsService.getInstance().notifyChanged()
+        WindowTabsService.getInstance().notifyChanged()
     }
 }

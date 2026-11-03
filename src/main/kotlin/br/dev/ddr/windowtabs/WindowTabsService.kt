@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
@@ -10,7 +10,7 @@ import com.intellij.openapi.wm.WindowManager
 import java.awt.Frame
 
 @Service(Service.Level.APP)
-class ProjectTabsService {
+class WindowTabsService {
     private val order = TabOrder()
 
     /** Raises a project's window; tests swap it out because the real one needs real frames. */
@@ -26,7 +26,7 @@ class ProjectTabsService {
     fun notifyChanged() {
         val application = ApplicationManager.getApplication()
         application.invokeLater {
-            application.messageBus.syncPublisher(ProjectTabsListener.TOPIC).tabsChanged()
+            application.messageBus.syncPublisher(WindowTabsListener.TOPIC).tabsChanged()
         }
     }
 
@@ -58,6 +58,6 @@ class ProjectTabsService {
     }
 
     companion object {
-        fun getInstance(): ProjectTabsService = service()
+        fun getInstance(): WindowTabsService = service()
     }
 }

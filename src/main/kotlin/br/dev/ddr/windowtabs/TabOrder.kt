@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 /**
  * Keeps the tab order stable while projects open and close: known keys keep their position,

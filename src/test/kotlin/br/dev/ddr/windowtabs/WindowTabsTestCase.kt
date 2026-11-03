@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
@@ -17,7 +17,7 @@ import java.nio.file.Files
 import javax.swing.JFrame
 
 /** Real projects, so the tests see what ProjectManager really reports, plus a fake WindowManager for the frames. */
-abstract class ProjectTabsTestCase : HeavyPlatformTestCase() {
+abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
     /** Projects whose window the code under test asked to raise, once [fakeWindowManager] is in place. */
     protected val focused = mutableListOf<Project>()
 
@@ -32,7 +32,7 @@ abstract class ProjectTabsTestCase : HeavyPlatformTestCase() {
     /** A project that was open and is now closed, for the code paths that must ignore disposed projects. */
     protected fun closedProject(): Project {
         val project = openAnotherProject("closed")
-        ProjectTabsService.getInstance().close(project)
+        WindowTabsService.getInstance().close(project)
         dispatchEvents()
 
         return project
@@ -56,7 +56,7 @@ abstract class ProjectTabsTestCase : HeavyPlatformTestCase() {
         Disposer.register(testRootDisposable, disposable)
         ApplicationManager.getApplication().replaceService(WindowManager::class.java, windowManager, disposable)
 
-        val service = ProjectTabsService.getInstance()
+        val service = WindowTabsService.getInstance()
         val realFocus = service.focusWindow
         service.focusWindow = { focused.add(it) }
         Disposer.register(disposable) { service.focusWindow = realFocus }
@@ -70,7 +70,7 @@ abstract class ProjectTabsTestCase : HeavyPlatformTestCase() {
             .getApplication()
             .messageBus
             .connect(testRootDisposable)
-            .subscribe(ProjectTabsListener.TOPIC, ProjectTabsListener { calls++ })
+            .subscribe(WindowTabsListener.TOPIC, WindowTabsListener { calls++ })
 
         return { calls }
     }

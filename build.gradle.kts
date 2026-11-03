@@ -12,7 +12,7 @@ plugins {
     id("dev.detekt") version "2.0.0-alpha.6"
 }
 
-group = "com.danielneto.projecttabs"
+group = "br.dev.ddr.windowtabs"
 version = providers.gradleProperty("pluginVersion").get()
 
 // Bytecode for Java 21, built by whatever JDK runs Gradle, so the IDE's bundled JBR is enough on a machine without a JDK.

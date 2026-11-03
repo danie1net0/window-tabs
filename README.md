@@ -1,4 +1,4 @@
-# Project Tabs
+# Window Tabs
 
 Plugin para PhpStorm e GoLand (e qualquer IDE JetBrains 2026.1+) que mostra os projetos abertos como abas no topo de
 cada janela, imitando as abas nativas do macOS no Linux.
@@ -27,7 +27,7 @@ export JAVA_HOME=~/.local/share/JetBrains/Toolbox/apps/phpstorm-light/jbr
 ./gradlew buildPlugin
 ```
 
-O zip sai em `build/distributions/project-tabs-<versão>.zip`.
+O zip sai em `build/distributions/window-tabs-<versão>.zip`.
 
 ## Qualidade
 

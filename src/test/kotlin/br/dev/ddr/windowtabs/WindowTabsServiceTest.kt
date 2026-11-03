@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
@@ -7,8 +7,8 @@ import org.mockito.Mockito.`when`
 import java.awt.Frame
 import java.awt.Rectangle
 
-class ProjectTabsServiceTest : ProjectTabsTestCase() {
-    private val service get() = ProjectTabsService.getInstance()
+class WindowTabsServiceTest : WindowTabsTestCase() {
+    private val service get() = WindowTabsService.getInstance()
 
     fun `test lists open projects in the order they were opened`() {
         val second = openAnotherProject("second")

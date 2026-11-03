@@ -1,4 +1,4 @@
-package com.danielneto.projecttabs
+package br.dev.ddr.windowtabs
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -22,7 +22,7 @@ import javax.swing.SwingConstants
 import javax.swing.SwingUtilities
 
 /** One strip per frame; the tab of the frame's own project is the selected one. */
-class ProjectTabsBar(
+class WindowTabsBar(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
     private val tabs = JPanel(GridLayout(1, 0))
@@ -38,12 +38,12 @@ class ProjectTabsBar(
 
     override fun addNotify() {
         super.addNotify()
-        val disposable = Disposer.newDisposable("ProjectTabsBar")
+        val disposable = Disposer.newDisposable("WindowTabsBar")
         ApplicationManager
             .getApplication()
             .messageBus
             .connect(disposable)
-            .subscribe(ProjectTabsListener.TOPIC, ProjectTabsListener { rebuild() })
+            .subscribe(WindowTabsListener.TOPIC, WindowTabsListener { rebuild() })
         connection = disposable
         rebuild()
     }
@@ -61,7 +61,7 @@ class ProjectTabsBar(
             return
         }
 
-        val projects = ProjectTabsService.getInstance().projects()
+        val projects = WindowTabsService.getInstance().projects()
         tabs.removeAll()
         projects.forEach { tabs.add(Tab(it, it == project)) }
         isVisible = projects.size > 1
@@ -119,7 +119,7 @@ class ProjectTabsBar(
                     }
 
                     override fun mouseClicked(e: MouseEvent) {
-                        ProjectTabsService.getInstance().close(target)
+                        WindowTabsService.getInstance().close(target)
                     }
                 },
             )
@@ -133,9 +133,9 @@ class ProjectTabsBar(
 
                     override fun mouseClicked(e: MouseEvent) {
                         if (SwingUtilities.isMiddleMouseButton(e)) {
-                            ProjectTabsService.getInstance().close(target)
+                            WindowTabsService.getInstance().close(target)
                         } else if (SwingUtilities.isLeftMouseButton(e) && !selected) {
-                            ProjectTabsService.getInstance().switchTo(project, target)
+                            WindowTabsService.getInstance().switchTo(project, target)
                         }
                     }
                 },

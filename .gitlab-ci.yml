@@ -79,6 +79,6 @@ build:
   script:
     - ./gradlew buildPlugin
   artifacts:
-    name: project-tabs-$CI_COMMIT_SHORT_SHA
+    name: window-tabs-$CI_COMMIT_SHORT_SHA
     paths:
       - build/distributions/*.zip
