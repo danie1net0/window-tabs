@@ -13,11 +13,11 @@ default:
   image: eclipse-temurin:25-jdk
   interruptible: true
   cache:
+    # GitLab takes at most two files: plugin versions live in build.gradle.kts, platform versions in gradle.properties.
     key:
       files:
-        - gradle/wrapper/gradle-wrapper.properties
-        - gradle.properties
         - build.gradle.kts
+        - gradle.properties
     paths:
       - .gradle-home/caches/
       - .gradle-home/wrapper/
