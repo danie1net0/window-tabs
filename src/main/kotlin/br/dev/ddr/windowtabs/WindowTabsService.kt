@@ -2,6 +2,7 @@ package br.dev.ddr.windowtabs
 
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -44,11 +45,13 @@ class WindowTabsService {
         notifyChanged()
     }
 
+    /** Refreshes the strips even under a modal dialog or progress, which the IDE may show while it reopens projects. */
     fun notifyChanged() {
         val application = ApplicationManager.getApplication()
-        application.invokeLater {
-            application.messageBus.syncPublisher(WindowTabsListener.TOPIC).tabsChanged()
-        }
+        application.invokeLater(
+            { application.messageBus.syncPublisher(WindowTabsListener.TOPIC).tabsChanged() },
+            ModalityState.any(),
+        )
     }
 
     /** Puts the target frame where the current one is and brings it to the front, so switching feels like a tab. */
