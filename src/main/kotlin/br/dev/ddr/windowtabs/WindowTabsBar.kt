@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
@@ -61,13 +62,19 @@ class WindowTabsBar(
             return
         }
 
-        val projects = WindowTabsService.getInstance().projects()
+        val windowTabs = WindowTabsService.getInstance().tabs(project)
         tabs.removeAll()
-        projects.forEach { tabs.add(Tab(it, it == project)) }
-        isVisible = projects.size > 1
+        windowTabs.forEach { tabs.add(view(it)) }
+        isVisible = windowTabs.size > 1
         revalidate()
         repaint()
     }
+
+    private fun view(tab: WindowTab): JPanel =
+        when (tab) {
+            is WindowTab.Open -> Tab(tab.project, tab.project == project)
+            is WindowTab.Reopening -> Placeholder(tab)
+        }
 
     private fun newProjectButton(): JBLabel {
         val button = JBLabel(AllIcons.General.Add)
@@ -101,8 +108,12 @@ class WindowTabsBar(
             toolTipText = target.basePath
 
             val title = JBLabel(target.name, SwingConstants.CENTER)
-            title.font = if (selected) JBUI.Fonts.label().asBold() else JBUI.Fonts.label().asPlain()
-            title.foreground = if (selected) UIUtil.getLabelForeground() else UIUtil.getContextHelpForeground()
+            title.font = JBUI.Fonts.label().asPlain()
+            title.foreground = UIUtil.getContextHelpForeground()
+            if (selected) {
+                title.font = JBUI.Fonts.label().asBold()
+                title.foreground = UIUtil.getLabelForeground()
+            }
             add(title, BorderLayout.CENTER)
 
             closeButton.toolTipText = "Close project"
@@ -134,7 +145,11 @@ class WindowTabsBar(
                     override fun mouseClicked(e: MouseEvent) {
                         if (SwingUtilities.isMiddleMouseButton(e)) {
                             WindowTabsService.getInstance().close(target)
-                        } else if (SwingUtilities.isLeftMouseButton(e) && !selected) {
+
+                            return
+                        }
+
+                        if (SwingUtilities.isLeftMouseButton(e) && !selected) {
                             WindowTabsService.getInstance().switchTo(project, target)
                         }
                     }
@@ -151,28 +166,53 @@ class WindowTabsBar(
 
         override fun paintComponent(g: Graphics) {
             super.paintComponent(g)
-            val background =
-                when {
-                    selected -> JBUI.CurrentTheme.EditorTabs.underlinedTabBackground()
-                    hovered -> JBUI.CurrentTheme.EditorTabs.hoverBackground()
-                    else -> null
-                }
-            background?.let {
-                g.color = it
+
+            if (hovered) {
+                g.color = JBUI.CurrentTheme.EditorTabs.hoverBackground()
                 g.fillRect(0, 0, width, height)
             }
+
             if (selected) {
+                g.color = JBUI.CurrentTheme.EditorTabs.underlinedTabBackground()
+                g.fillRect(0, 0, width, height)
                 g.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
                 val thickness = JBUI.scale(2)
                 g.fillRect(0, height - thickness, width, thickness)
             }
-            g.color = JBColor.border()
-            g.fillRect(width - 1, 0, 1, height)
+
+            paintSeparator(g)
+        }
+    }
+
+    /** A project the IDE has not reopened yet: dimmed, with a spinner, and nothing to click until its window is up. */
+    private class Placeholder(
+        tab: WindowTab.Reopening,
+    ) : JPanel(BorderLayout()) {
+        init {
+            isOpaque = false
+            border = JBUI.Borders.empty(TAB_VERTICAL_PADDING, TAB_HORIZONTAL_PADDING)
+            toolTipText = "Reopening ${tab.path}"
+
+            val title = JBLabel(tab.name, SwingConstants.CENTER)
+            title.font = JBUI.Fonts.label().asPlain()
+            title.foreground = UIUtil.getLabelDisabledForeground()
+            add(title, BorderLayout.CENTER)
+            add(JBLabel(AnimatedIcon.Default.INSTANCE), BorderLayout.WEST)
+        }
+
+        override fun paintComponent(g: Graphics) {
+            super.paintComponent(g)
+            paintSeparator(g)
         }
     }
 
     companion object {
         const val OPEN_PROJECT_ACTION = "OpenFile"
+
+        private fun JPanel.paintSeparator(g: Graphics) {
+            g.color = JBColor.border()
+            g.fillRect(width - 1, 0, 1, height)
+        }
 
         private const val PLUS_PADDING = 10
         private const val TAB_VERTICAL_PADDING = 5

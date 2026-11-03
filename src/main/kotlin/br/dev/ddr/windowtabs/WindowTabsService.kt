@@ -12,15 +12,35 @@ import java.awt.Frame
 @Service(Service.Level.APP)
 class WindowTabsService {
     private val order = TabOrder()
+    private val reopening = ReopeningProjects()
+
+    init {
+        reopening.expect(ReopeningProjects.fromLastSession())
+    }
 
     /** Raises a project's window; tests swap it out because the real one needs real frames. */
     internal var focusWindow: (Project) -> Unit = { ProjectUtil.focusProjectWindow(it, true) }
 
-    fun projects(): List<Project> {
-        val open = ProjectManager.getInstance().openProjects
-        val byKey = open.associateBy { it.locationHash }
+    /**
+     * The tabs for the window of [current]: every open project plus the ones the IDE is still reopening.
+     * [current] counts as open even before ProjectManager lists it, so a window never shows itself as a placeholder.
+     */
+    fun tabs(current: Project): List<WindowTab> {
+        val open = (ProjectManager.getInstance().openProjects.toList() + current).distinct()
+        val byKey = mutableMapOf<String, WindowTab>()
+        open.forEach { byKey[it.basePath.toString()] = WindowTab.Open(it) }
+        reopening.remaining(byKey.keys).forEach { byKey[it.key] = it }
 
-        return order.sync(open.map { it.locationHash }).map { byKey.getValue(it) }
+        return order.sync(byKey.keys.toList()).map { byKey.getValue(it) }
+    }
+
+    internal fun expectReopening(projects: List<WindowTab.Reopening>) {
+        reopening.expect(projects)
+    }
+
+    fun reopenFinished() {
+        reopening.finish()
+        notifyChanged()
     }
 
     fun notifyChanged() {

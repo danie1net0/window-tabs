@@ -7,6 +7,7 @@
     Shows every open project as a tab across the top of each IDE window, like the native window tabs on macOS.
     Clicking a tab moves that project's window over the current one and brings it to the front.
     Middle-click or the close icon closes the project.
+    While the IDE reopens the last session, the projects still on their way show as dimmed tabs.
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -19,5 +20,7 @@
     <applicationListeners>
         <listener class="br.dev.ddr.windowtabs.WindowTabsCloseListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <listener class="br.dev.ddr.windowtabs.WindowTabsReopenListener"
+                  topic="com.intellij.ide.RecentProjectsManager$LastProjectsListener"/>
     </applicationListeners>
 </idea-plugin>

@@ -42,6 +42,29 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         )
     }
 
+    fun `test a project still reopening shows as a dimmed tab with a spinner`() {
+        WindowTabsService.getInstance().expectReopening(listOf(WindowTab.Reopening("/work/later", "later")))
+
+        val bar = WindowTabsBar(project)
+        val placeholder = bar.tabs()[1]
+
+        assertTrue(bar.isVisible)
+        assertEquals("later", placeholder.title().text)
+        assertEquals("Reopening /work/later", placeholder.toolTipText)
+        assertEquals(
+            com.intellij.util.ui.UIUtil
+                .getLabelDisabledForeground(),
+            placeholder.title().foreground,
+        )
+        assertSame(
+            com.intellij.ui.AnimatedIcon.Default.INSTANCE,
+            placeholder.components
+                .filterIsInstance<JBLabel>()
+                .first { it.text.isNullOrEmpty() }
+                .icon,
+        )
+    }
+
     fun `test refreshes when told the tabs changed while shown`() {
         val bar = WindowTabsBar(project)
         bar.addNotify()
@@ -167,9 +190,10 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         }
     }
 
-    fun `test paints selected, hovered and plain tabs`() {
+    fun `test paints selected, hovered, plain and reopening tabs`() {
         openAnotherProject("hovered")
         openAnotherProject("plain")
+        WindowTabsService.getInstance().expectReopening(listOf(WindowTab.Reopening("/work/later", "later")))
         val bar = WindowTabsBar(project)
         bar.setSize(600, 30)
         bar.doLayout()
@@ -177,6 +201,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
             it.setSize(200, 30)
             it.doLayout()
         }
+        mouse(bar.tabs()[0], MouseEvent.MOUSE_ENTERED, 10, 10)
         mouse(bar.tabs()[1], MouseEvent.MOUSE_ENTERED, 10, 10)
 
         val image = BufferedImage(600, 30, BufferedImage.TYPE_INT_ARGB)

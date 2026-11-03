@@ -20,4 +20,15 @@ class WindowTabsLifecycleTest : WindowTabsTestCase() {
 
         assertEquals(1, calls())
     }
+
+    fun `test the end of the reopen drops the placeholders`() {
+        WindowTabsService.getInstance().expectReopening(listOf(WindowTab.Reopening("/work/missing", "missing")))
+        val calls = recordTabsChanged()
+
+        WindowTabsReopenListener().lastProjectsReopened(project)
+        dispatchEvents()
+
+        assertEquals(1, WindowTabsService.getInstance().tabs(project).size)
+        assertEquals(1, calls())
+    }
 }

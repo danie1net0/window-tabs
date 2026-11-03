@@ -21,6 +21,19 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
     /** Projects whose window the code under test asked to raise, once [fakeWindowManager] is in place. */
     protected val focused = mutableListOf<Project>()
 
+    /** The service outlives each test, so nothing a test left waiting may leak into the next one. */
+    override fun setUp() {
+        super.setUp()
+        WindowTabsService.getInstance().expectReopening(emptyList())
+    }
+
+    protected fun openProjects(current: Project = project): List<Project> =
+        WindowTabsService
+            .getInstance()
+            .tabs(current)
+            .filterIsInstance<WindowTab.Open>()
+            .map { it.project }
+
     protected fun openAnotherProject(name: String): Project {
         val directory = Files.createTempDirectory(name)
         Files.createDirectories(directory.resolve(".idea"))
