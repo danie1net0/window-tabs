@@ -15,6 +15,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <ideRootPaneNorth implementation="br.dev.ddr.windowtabs.WindowTabsNorthExtension"/>
         <postStartupActivity implementation="br.dev.ddr.windowtabs.WindowTabsOpenActivity"/>
+        <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
 
     <applicationListeners>

@@ -85,6 +85,13 @@ Compatibilidade com PhpStorm e GoLand (`verifyIdeVersion` em `gradle.properties`
 O pipeline do GitLab roda `ktlint` e `detekt`, depois `test` e `verify`, e por fim `build`, que guarda o zip como
 artifact.
 
+## Relatórios de erro
+
+Quando o plugin lança uma exceção ou trava o IDE, a janela IDE Internal Errors oferece
+**Report to third-party plugin**. O relatório vai para o JetBrains Marketplace, que o mostra nas abas Exceptions e
+Freezes do plugin, com o stack trace, o sistema, a versão do IDE e a do plugin. Nada é enviado sem o consentimento do
+usuário, a não ser para quem ligou **Send error reports to JetBrains automatically** no IDE.
+
 ## Limitação
 
 A faixa usa o extension point `ideRootPaneNorth`, marcado como interno pela JetBrains. O `verifyPlugin` aceita (só
