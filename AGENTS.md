@@ -21,3 +21,11 @@ Gradle needs JDK 21+ (`JAVA_HOME`); detekt's JDK 21 toolchain is downloaded by t
   real frames go through `fakeWindowManager()` / `fakeFrame()`, never through a real `JFrame`.
 - The tab strip uses the internal `ideRootPaneNorth` extension point; `verifyPlugin` only fails on real
   incompatibilities, so check its report for new internal API usages after upgrading the platform.
+
+## Releases
+
+1. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version and bump `pluginVersion` in `gradle.properties`.
+2. Push a `vX.Y.Z` tag matching `pluginVersion`. The `sign`, `gitlab-release` and `marketplace` jobs sign the zip,
+   attach it to a GitLab release and upload it to JetBrains Marketplace.
+3. Signing reads the protected CI variables `CERTIFICATE_CHAIN_FILE`, `PRIVATE_KEY_FILE` (file type) and
+   `PRIVATE_KEY_PASSWORD`; Marketplace publishing reads `PUBLISH_TOKEN`. Without them the plugin builds unsigned.

@@ -2,6 +2,7 @@ stages:
   - lint
   - test
   - build
+  - release
 
 variables:
   GIT_DEPTH: 1
@@ -84,3 +85,56 @@ build:
     name: window-tabs-$CI_COMMIT_SHORT_SHA
     paths:
       - build/distributions/*.zip
+
+# A version tag (v1.2.3) signs the plugin, attaches it to a GitLab release and, once PUBLISH_TOKEN exists,
+# uploads it to JetBrains Marketplace. The signing variables are protected, so only protected v* tags see them.
+.version-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+sign:
+  stage: release
+  extends: .version-tag
+  needs: [ktlint, detekt, test, verify]
+  script:
+    - VERSION="${CI_COMMIT_TAG#v}"
+    # The tag and gradle.properties must name the same version, or the release would ship a mislabeled zip.
+    - test "$(sed -n 's/^pluginVersion = //p' gradle.properties)" = "$VERSION"
+    - ./gradlew verifyPluginSignature
+    - ./gradlew getChangelog --project-version="$VERSION" --no-header --no-links --console=plain -q > release-notes.md
+    - command -v curl || (apt-get update -qq && apt-get install -y -qq curl)
+    - >-
+      curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN"
+      --upload-file "build/distributions/window-tabs-$VERSION-signed.zip"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/window-tabs/$CI_COMMIT_TAG/window-tabs-$CI_COMMIT_TAG.zip"
+  artifacts:
+    paths:
+      - build/distributions/*-signed.zip
+      - release-notes.md
+
+gitlab-release:
+  stage: release
+  extends: .version-tag
+  needs: [sign]
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  cache: []
+  script:
+    - echo "Releasing $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: Window Tabs $CI_COMMIT_TAG
+    description: release-notes.md
+    assets:
+      links:
+        - name: window-tabs-$CI_COMMIT_TAG.zip
+          url: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/window-tabs/$CI_COMMIT_TAG/window-tabs-$CI_COMMIT_TAG.zip
+          link_type: package
+
+marketplace:
+  stage: release
+  needs: [sign]
+  rules:
+    # The first version goes up by hand on plugins.jetbrains.com; later ones go through here once the token exists.
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $PUBLISH_TOKEN
+  script:
+    - ./gradlew publishPlugin

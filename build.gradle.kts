@@ -1,3 +1,4 @@
+import org.jetbrains.changelog.Changelog
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
@@ -7,6 +8,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("org.jetbrains.kotlin.jvm") version "2.4.10"
     id("org.jetbrains.intellij.platform") version "2.19.0"
+    id("org.jetbrains.changelog") version "2.5.0"
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
     id("dev.detekt") version "2.0.0-alpha.6"
@@ -48,6 +50,13 @@ dependencies {
     }
 }
 
+changelog {
+    version = providers.gradleProperty("pluginVersion")
+    repositoryUrl = "https://gitlab.com/danie1net0/window-tabs"
+}
+
+val pluginVersion = providers.gradleProperty("pluginVersion").get()
+
 intellijPlatform {
     pluginConfiguration {
         version = providers.gradleProperty("pluginVersion")
@@ -55,6 +64,23 @@ intellijPlatform {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = provider { null }
         }
+
+        // The Marketplace shows these notes on the version's page; they come from this version's CHANGELOG.md section.
+        changeNotes =
+            with(changelog) {
+                renderItem(getOrNull(pluginVersion) ?: getUnreleased(), Changelog.OutputType.HTML)
+            }
+    }
+
+    // Only the release pipeline has these variables; locally and on branches the plugin builds unsigned.
+    signing {
+        certificateChainFile = layout.projectDirectory.file(providers.environmentVariable("CERTIFICATE_CHAIN_FILE"))
+        privateKeyFile = layout.projectDirectory.file(providers.environmentVariable("PRIVATE_KEY_FILE"))
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
     }
 
     pluginVerification {
@@ -66,6 +92,10 @@ intellijPlatform {
             create(IntelliJPlatformType.GoLand, version)
         }
     }
+}
+
+tasks.verifyPluginSignature {
+    dependsOn(tasks.signPlugin)
 }
 
 tasks.test {
