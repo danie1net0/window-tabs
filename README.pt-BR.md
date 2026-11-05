@@ -30,6 +30,10 @@ de cada janela do PhpStorm e do GoLand (qualquer IDE JetBrains 2026.1+ serve), u
 
 Cada projeto continua sendo uma janela própria; o plugin só faz a troca parecer uma aba.
 
+<p align="center">
+  <img src="art/marketplace-screenshot.png" alt="Janela do IDE com a faixa de abas mostrando quatro projetos abertos: storefront-api, billing-worker, admin-dashboard e docs-site" width="720">
+</p>
+
 ## Instalação
 
 Baixe `window-tabs-<versão>.zip` dos artifacts do último

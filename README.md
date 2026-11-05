@@ -30,6 +30,10 @@ of every PhpStorm and GoLand window (any JetBrains IDE 2026.1+ works) with one t
 
 Each project is still its own window; the plugin makes switching between them feel like switching tabs.
 
+<p align="center">
+  <img src="art/marketplace-screenshot.png" alt="An IDE window with a tab strip listing four open projects: storefront-api, billing-worker, admin-dashboard and docs-site" width="720">
+</p>
+
 ## Install
 
 Download `window-tabs-<version>.zip` from the artifacts of the latest
