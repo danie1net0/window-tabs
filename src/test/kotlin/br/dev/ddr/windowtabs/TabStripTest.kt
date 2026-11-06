@@ -13,11 +13,11 @@ import javax.swing.JViewport
 import javax.swing.SwingConstants
 
 class TabStripTest {
-    private val minWidth = JBUI.scale(TabStrip.MIN_TAB_WIDTH)
+    private val minimumWidth = JBUI.scale(TabStrip.MINIMUM_TAB_WIDTH)
 
     private fun strip(count: Int): TabStrip {
         val strip = TabStrip()
-        repeat(count) { strip.add(JLabel("tab $it")) }
+        repeat(count) { number -> strip.add(JLabel("tab $number")) }
 
         return strip
     }
@@ -38,11 +38,11 @@ class TabStripTest {
     @Test
     fun `stretches over the viewport while the tabs fit and scrolls once they do not`() {
         val fitting = strip(2)
-        inViewport(fitting, minWidth * 3)
+        inViewport(fitting, minimumWidth * 3)
         assertTrue(fitting.scrollableTracksViewportWidth)
 
         val crowded = strip(5)
-        inViewport(crowded, minWidth * 3)
+        inViewport(crowded, minimumWidth * 3)
         assertFalse(crowded.scrollableTracksViewportWidth)
 
         assertTrue(strip(1).scrollableTracksViewportWidth)
@@ -53,17 +53,17 @@ class TabStripTest {
     @Test
     fun `finds the tab under a point`() {
         val strip = strip(3)
-        inViewport(strip, minWidth * 3)
+        inViewport(strip, minimumWidth * 3)
 
         assertEquals(0, strip.indexAt(1))
-        assertEquals(1, strip.indexAt(minWidth + 1))
-        assertEquals(2, strip.indexAt(minWidth * 10))
+        assertEquals(1, strip.indexAt(minimumWidth + 1))
+        assertEquals(2, strip.indexAt(minimumWidth * 10))
     }
 
     @Test
     fun `the wheel scrolls sideways within the strip`() {
         val strip = strip(6)
-        val viewport = inViewport(strip, minWidth * 2)
+        val viewport = inViewport(strip, minimumWidth * 2)
         val step = strip.getScrollableUnitIncrement(Rectangle(), SwingConstants.HORIZONTAL, 1)
 
         strip.scrollBy(1)
@@ -73,9 +73,10 @@ class TabStripTest {
         assertEquals(Point(0, 0), viewport.viewPosition)
 
         strip.scrollBy(100)
-        assertEquals(Point(minWidth * 4, 0), viewport.viewPosition)
+        assertEquals(Point(minimumWidth * 4, 0), viewport.viewPosition)
 
-        assertEquals(minWidth * 2, strip.getScrollableBlockIncrement(viewport.viewRect, SwingConstants.HORIZONTAL, 1))
+        val blockIncrement = strip.getScrollableBlockIncrement(viewport.viewRect, SwingConstants.HORIZONTAL, 1)
+        assertEquals(minimumWidth * 2, blockIncrement)
     }
 
     @Test
@@ -90,18 +91,18 @@ class TabStripTest {
     @Test
     fun `keeps the selected tab in view after a layout`() {
         val strip = strip(6)
-        val viewport = inViewport(strip, minWidth * 2)
+        val viewport = inViewport(strip, minimumWidth * 2)
 
         strip.selectedIndex = 5
         strip.doLayout()
 
-        assertEquals(Point(minWidth * 4, 0), viewport.viewPosition)
+        assertEquals(Point(minimumWidth * 4, 0), viewport.viewPosition)
     }
 
     @Test
     fun `scrolls only once per new selection`() {
         val strip = strip(6)
-        val viewport = inViewport(strip, minWidth * 2)
+        val viewport = inViewport(strip, minimumWidth * 2)
         strip.selectedIndex = 5
         strip.doLayout()
 
@@ -114,7 +115,7 @@ class TabStripTest {
     @Test
     fun `a missing or stale selection scrolls nowhere`() {
         val strip = strip(6)
-        val viewport = inViewport(strip, minWidth * 2)
+        val viewport = inViewport(strip, minimumWidth * 2)
 
         strip.selectedIndex = null
         strip.doLayout()

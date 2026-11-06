@@ -30,14 +30,17 @@ class WindowTabsService {
      * Runs [Runnable] once the IDE has gone quiet; tests swap it out to end the reopen on demand.
      * The platform's own "last projects reopened" event only exists from 2025.x on, so a quiet period stands in for it.
      */
-    internal var scheduleReopenEnd: (Runnable) -> Future<*> = {
-        AppExecutorUtil.getAppScheduledExecutorService().schedule(it, REOPEN_QUIET_SECONDS, TimeUnit.SECONDS)
+    internal var scheduleReopenEnd: (Runnable) -> Future<*> = { reopenEnd ->
+        AppExecutorUtil.getAppScheduledExecutorService().schedule(reopenEnd, REOPEN_QUIET_SECONDS, TimeUnit.SECONDS)
     }
 
     private var pendingReopenEnd: Future<*>? = null
 
+    /** Whether the current OS counts as macOS for the strip; tests flip it to cover both sides. */
+    internal var isMac = SystemInfo.isMac
+
     /** Raises a project's window; tests swap it out because the real one needs real frames. */
-    internal var focusWindow: (Project) -> Unit = { ProjectUtil.focusProjectWindow(it, true) }
+    internal var focusWindow: (Project) -> Unit = { project -> ProjectUtil.focusProjectWindow(project, true) }
 
     /**
      * The tabs for the window of [current]: every open project plus the ones the IDE is still reopening.
@@ -51,14 +54,11 @@ class WindowTabsService {
 
     private fun tabsOf(open: List<Project>): List<WindowTab> {
         val byKey = mutableMapOf<String, WindowTab>()
-        open.map { WindowTab.Open(it) }.forEach { byKey[it.key] = it }
-        reopening.remaining(byKey.keys).forEach { byKey[it.key] = it }
+        open.map { project -> WindowTab.Open(project) }.forEach { tab -> byKey[tab.key] = tab }
+        reopening.remaining(byKey.keys).forEach { tab -> byKey[tab.key] = tab }
 
-        return order.sync(byKey.keys.toList()).map { byKey.getValue(it) }
+        return order.sync(byKey.keys.toList()).map { key -> byKey.getValue(key) }
     }
-
-    /** Whether the current OS counts as macOS for the strip; tests flip it to cover both sides. */
-    internal var isMac = SystemInfo.isMac
 
     /** Whether a window with [tabCount] tabs shows the strip, under the current settings. */
     fun showsStrip(tabCount: Int) = StripVisibility.shows(tabCount, WindowTabsSettings.getInstance().state, isMac)
@@ -68,6 +68,7 @@ class WindowTabsService {
         key: String,
         index: Int,
     ) {
+        // The order only knows the keys it has synced; a drag may come before any strip asked for its tabs.
         tabsOf(ProjectManager.getInstance().openProjects.toList())
         order.move(key, index)
         notifyChanged()
@@ -110,7 +111,7 @@ class WindowTabsService {
         if (source != null && destination != null) {
             val placement = FramePlacement.matching(source.extendedState, source.bounds)
             destination.extendedState = Frame.NORMAL
-            placement.bounds?.let { destination.bounds = it }
+            placement.bounds?.let { bounds -> destination.bounds = bounds }
             destination.extendedState = placement.extendedState
         }
 

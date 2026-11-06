@@ -36,7 +36,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = WindowTabsBar(project)
 
         assertTrue(bar.isVisible)
-        assertEquals(listOf(project.name, "other"), bar.tabs().map { it.title().text })
+        assertEquals(listOf(project.name, "other"), bar.tabs().map { tab -> tab.title().text })
         assertEquals(project.basePath, bar.tabs()[0].toolTipText)
         assertEquals(other.basePath, bar.tabs()[1].toolTipText)
         assertEquals(1, WindowTabsBar(other).strip().selectedIndex)
@@ -71,7 +71,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
             AnimatedIcon.Default.INSTANCE,
             placeholder.components
                 .filterIsInstance<JBLabel>()
-                .first { it.text.isNullOrEmpty() }
+                .first { label -> label.text.isNullOrEmpty() }
                 .icon,
         )
     }
@@ -208,16 +208,16 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = WindowTabsBar(project)
         bar.setSize(600, 30)
         bar.doLayout()
-        bar.tabs().forEach {
-            it.setSize(200, 30)
-            it.doLayout()
+        bar.tabs().forEach { tab ->
+            tab.setSize(200, 30)
+            tab.doLayout()
         }
         mouse(bar.tabs()[0], MouseEvent.MOUSE_ENTERED, 10, 10)
         mouse(bar.tabs()[1], MouseEvent.MOUSE_ENTERED, 10, 10)
 
         val image = BufferedImage(600, 30, BufferedImage.TYPE_INT_ARGB)
         val graphics = image.createGraphics()
-        bar.tabs().forEach { it.paint(graphics.create()) }
+        bar.tabs().forEach { tab -> tab.paint(graphics.create()) }
         graphics.dispose()
 
         assertEquals(
@@ -272,7 +272,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     }
 
     fun `test the wheel scrolls a crowded strip`() {
-        repeat(8) { openAnotherProject("p$it") }
+        repeat(8) { number -> openAnotherProject("project$number") }
         val bar = laidOut(WindowTabsBar(project))
         val scrollPane = bar.getComponent(0) as JBScrollPane
 
@@ -285,11 +285,13 @@ class WindowTabsBarTest : WindowTabsTestCase() {
 
     private fun WindowTabsBar.strip(): TabStrip = ((getComponent(0) as JBScrollPane).viewport.view as TabStrip)
 
-    private fun WindowTabsBar.tabs(): List<JPanel> = strip().components.map { it as JPanel }
+    private fun WindowTabsBar.tabs(): List<JPanel> = strip().components.map { component -> component as JPanel }
 
     private fun WindowTabsBar.plusButton(): JBLabel = getComponent(1) as JBLabel
 
-    private fun JPanel.title(): JBLabel = components.filterIsInstance<JBLabel>().first { !it.text.isNullOrEmpty() }
+    private fun JPanel.labels(): List<JBLabel> = components.filterIsInstance<JBLabel>()
+
+    private fun JPanel.title(): JBLabel = labels().first { label -> !label.text.isNullOrEmpty() }
 
     private fun drag(
         tab: JPanel,
@@ -314,7 +316,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         return bar
     }
 
-    private fun JPanel.closeButton(): JBLabel = components.filterIsInstance<JBLabel>().first { it.text.isNullOrEmpty() }
+    private fun JPanel.closeButton(): JBLabel = labels().first { label -> label.text.isNullOrEmpty() }
 
     private fun click(
         target: Component,

@@ -17,7 +17,7 @@ class ReopeningProjects {
 
     /** Forgets, for good, the ones whose window is open now: closing that project later leaves no placeholder. */
     fun remaining(openKeys: Set<String>): List<WindowTab.Reopening> {
-        waiting.removeAll { it.key in openKeys }
+        waiting.removeAll { project -> project.key in openKeys }
 
         return waiting.toList()
     }
@@ -37,9 +37,9 @@ class ReopeningProjects {
             val recent = RecentProjectsManagerBase.getInstanceEx()
 
             return recent.state.additionalInfo.entries
-                .filter { it.value.opened && !it.value.hidden }
-                .sortedBy { it.value.projectOpenTimestamp }
-                .map { WindowTab.Reopening(it.key, it.value.displayName ?: recent.getProjectName(it.key)) }
+                .filter { (_, info) -> info.opened && !info.hidden }
+                .sortedBy { (_, info) -> info.projectOpenTimestamp }
+                .map { (path, info) -> WindowTab.Reopening(path, info.displayName ?: recent.getProjectName(path)) }
         }
     }
 }

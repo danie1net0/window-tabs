@@ -21,6 +21,7 @@ class StepTabAction : DumbAwareAction() {
         }
 
         var step = 1
+
         if (ActionManager.getInstance().getId(this) == PREVIOUS_ID) {
             step = -1
         }

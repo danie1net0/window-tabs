@@ -12,6 +12,7 @@ object StripVisibility {
         }
 
         var minimum = 2
+
         if (options.showWithSingleProject) {
             minimum = 1
         }

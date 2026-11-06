@@ -25,7 +25,7 @@ object TabNavigator {
         current: Project,
         step: Int,
     ) {
-        val open = service.tabs(current).filterIsInstance<WindowTab.Open>().map { it.project }
+        val open = service.tabs(current).filterIsInstance<WindowTab.Open>().map { tab -> tab.project }
 
         if (open.size < 2) {
             return

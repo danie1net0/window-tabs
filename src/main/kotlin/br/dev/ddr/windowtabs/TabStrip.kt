@@ -14,7 +14,7 @@ import javax.swing.SwingConstants
  * and keeps the minimum tab width (scrolling sideways) once they do not.
  */
 class TabStrip :
-    JPanel(TabStripLayout { JBUI.scale(MIN_TAB_WIDTH) }),
+    JPanel(TabStripLayout { JBUI.scale(MINIMUM_TAB_WIDTH) }),
     Scrollable {
     /** The tab of the frame's own project, scrolled into view by the next layout. */
     var selectedIndex: Int? = null
@@ -50,9 +50,9 @@ class TabStrip :
         scrollRectToVisible(getComponent(index).bounds)
     }
 
-    /** Which tab sits under [x] in this strip's coordinates; past the end counts as the last tab. */
-    fun indexAt(x: Int): Int {
-        val index = components.indexOfFirst { x < it.x + it.width }
+    /** Which tab sits under [horizontalPosition] in this strip's coordinates; past the end counts as the last tab. */
+    fun indexAt(horizontalPosition: Int): Int {
+        val index = components.indexOfFirst { tab -> horizontalPosition < tab.x + tab.width }
 
         if (index < 0) {
             return componentCount - 1
@@ -67,7 +67,7 @@ class TabStrip :
         visibleRect: Rectangle,
         orientation: Int,
         direction: Int,
-    ) = JBUI.scale(MIN_TAB_WIDTH) / 2
+    ) = JBUI.scale(MINIMUM_TAB_WIDTH) / 2
 
     override fun getScrollableBlockIncrement(
         visibleRect: Rectangle,
@@ -103,6 +103,6 @@ class TabStrip :
 
     companion object {
         /** Below this a project name is mostly an ellipsis. */
-        const val MIN_TAB_WIDTH = 120
+        const val MINIMUM_TAB_WIDTH = 120
     }
 }

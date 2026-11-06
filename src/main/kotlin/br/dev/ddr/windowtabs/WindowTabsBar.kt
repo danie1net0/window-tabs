@@ -59,7 +59,7 @@ class WindowTabsBar(
     }
 
     override fun removeNotify() {
-        connection?.let { Disposer.dispose(it) }
+        connection?.let { disposable -> Disposer.dispose(disposable) }
         connection = null
 
         super.removeNotify()
@@ -77,7 +77,7 @@ class WindowTabsBar(
         scrollPane.border = JBUI.Borders.empty()
         scrollPane.isOpaque = false
         scrollPane.viewport.isOpaque = false
-        scrollPane.addMouseWheelListener { tabs.scrollBy(it.wheelRotation) }
+        scrollPane.addMouseWheelListener { wheel -> tabs.scrollBy(wheel.wheelRotation) }
 
         return scrollPane
     }
@@ -91,9 +91,10 @@ class WindowTabsBar(
         val windowTabs = service.tabs(project)
 
         tabs.removeAll()
-        windowTabs.forEach { tabs.add(view(it)) }
+        windowTabs.forEach { tab -> tabs.add(view(tab)) }
+
         val ownKey = WindowTab.Open(project).key
-        tabs.selectedIndex = windowTabs.indexOfFirst { it.key == ownKey }
+        tabs.selectedIndex = windowTabs.indexOfFirst { tab -> tab.key == ownKey }
         isVisible = service.showsStrip(windowTabs.size)
 
         revalidate()
@@ -148,10 +149,12 @@ class WindowTabsBar(
             val title = JBLabel(target.name, projectIcon(), SwingConstants.CENTER)
             title.font = JBUI.Fonts.label().asPlain()
             title.foreground = UIUtil.getContextHelpForeground()
+
             if (selected) {
                 title.font = JBUI.Fonts.label().asBold()
                 title.foreground = UIUtil.getLabelForeground()
             }
+
             add(title, BorderLayout.CENTER)
 
             closeButton.toolTipText = "Close project"

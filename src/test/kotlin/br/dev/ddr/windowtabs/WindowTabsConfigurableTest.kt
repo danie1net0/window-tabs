@@ -18,7 +18,7 @@ class WindowTabsConfigurableTest : WindowTabsTestCase() {
         val component = configurable.createComponent()
         configurable.reset()
 
-        assertEquals(listOf(false, true, true), checkBoxes(component).map { it.isSelected })
+        assertEquals(listOf(false, true, true), checkBoxes(component).map { checkBox -> checkBox.isSelected })
         assertFalse(configurable.isModified)
         configurable.disposeUIResources()
     }

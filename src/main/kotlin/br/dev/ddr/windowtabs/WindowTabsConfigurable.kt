@@ -41,7 +41,8 @@ class WindowTabsConfigurable : BoundConfigurable("Window Tabs") {
     }
 
     private companion object {
-        const val MAC_COMMENT = "macOS can already merge project windows into native tabs (Window | Merge All Windows)."
+        const val MAC_COMMENT =
+            "macOS can already merge project windows into native tabs (Window | Merge All Project Windows)."
         const val SHORTCUTS_COMMENT =
             "Alt+Shift+1…9 go to a tab. Next Project Tab and Previous Project Tab have no shortcut by default; " +
                 "assign them in Settings | Keymap."

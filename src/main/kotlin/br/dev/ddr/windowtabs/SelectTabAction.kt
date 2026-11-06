@@ -19,7 +19,7 @@ class SelectTabAction : DumbAwareAction() {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project
         val id = ActionManager.getInstance().getId(this)
-        val number = id?.let { it.removePrefix(ID_PREFIX).toIntOrNull() }
+        val number = id?.let { registeredId -> registeredId.removePrefix(ID_PREFIX).toIntOrNull() }
 
         if (project == null || number == null) {
             return

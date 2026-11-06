@@ -14,7 +14,7 @@ class TabOrder(
     fun sync(openKeys: List<String>): List<String> {
         val before = keys.toList()
         keys.retainAll(openKeys.toSet())
-        openKeys.filterNot { it in keys }.forEach { keys.add(it) }
+        openKeys.filterNot { key -> key in keys }.forEach { key -> keys.add(key) }
 
         report(before)
 

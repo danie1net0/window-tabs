@@ -38,7 +38,7 @@ class TabOrderTest {
     @Test
     fun `moves a tab and reports the new order`() {
         val reported = mutableListOf<List<String>>()
-        val order = TabOrder { reported.add(it) }
+        val order = TabOrder { keys -> reported.add(keys) }
         order.sync(listOf("a", "b", "c"))
 
         order.move("c", 0)
@@ -51,7 +51,7 @@ class TabOrderTest {
     @Test
     fun `reports nothing when the order stays the same`() {
         val reported = mutableListOf<List<String>>()
-        val order = TabOrder(listOf("a", "b")) { reported.add(it) }
+        val order = TabOrder(listOf("a", "b")) { keys -> reported.add(keys) }
 
         order.sync(listOf("a", "b"))
         order.move("a", 0)

@@ -25,7 +25,7 @@ class SelectTabActionTest : WindowTabsTestCase() {
     }
 
     fun `test registers one action per tab number`() {
-        (1..9).forEach { assertInstanceOf(action(it), SelectTabAction::class.java) }
+        (1..9).forEach { number -> assertInstanceOf(action(number), SelectTabAction::class.java) }
     }
 
     fun `test goes to the tab with the action's number`() {
