@@ -12,10 +12,15 @@
       <li><b>Middle-click</b>, or the <b>×</b> shown on hover, closes the project.</li>
       <li><b>+</b> opens another project.</li>
       <li>While the IDE reopens the last session, projects still loading show as dimmed tabs.</li>
-      <li>The strip appears only while two or more projects are open.</li>
+      <li><b>Alt+Shift+1…9</b> jump to a tab; <i>Window | Project Tabs</i> also has next and previous tab,
+          ready for a shortcut of your choice.</li>
+      <li><b>Drag</b> a tab to reorder the strip; the order is kept for the next start.</li>
+      <li>Each tab shows the project's icon. With many projects the tabs keep a readable width and the strip scrolls.</li>
     </ul>
     <p>Each project stays in its own window, so the IDE handles projects exactly as before.
-    Works in every JetBrains IDE 2026.1 or newer.</p>
+    Works in every JetBrains IDE 2024.3 or newer, Android Studio included.
+    <i>Settings | Appearance &amp; Behavior | Window Tabs</i> shows the strip with a single project,
+    hides the icons, or turns the strip on for macOS, where it is off by default because macOS has native window tabs.</p>
     <p><b>GNOME on Wayland:</b> if GNOME shows a "ready" notice instead of raising the window, run the IDE on X11:
     <i>Help → Edit Custom VM Options</i> → <code>-Dawt.toolkit.name=XToolkit</code>.</p>
     ]]></description>
@@ -25,13 +30,58 @@
     <extensions defaultExtensionNs="com.intellij">
         <ideRootPaneNorth implementation="br.dev.ddr.windowtabs.WindowTabsNorthExtension"/>
         <postStartupActivity implementation="br.dev.ddr.windowtabs.WindowTabsOpenActivity"/>
+        <applicationConfigurable parentId="appearance" id="br.dev.ddr.windowtabs.settings"
+                                 instance="br.dev.ddr.windowtabs.WindowTabsConfigurable" displayName="Window Tabs"/>
         <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
 
     <applicationListeners>
         <listener class="br.dev.ddr.windowtabs.WindowTabsCloseListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
-        <listener class="br.dev.ddr.windowtabs.WindowTabsReopenListener"
-                  topic="com.intellij.ide.RecentProjectsManager$LastProjectsListener"/>
     </applicationListeners>
+    <actions>
+        <group id="WindowTabs.Actions" text="Project Tabs" popup="true">
+            <action id="WindowTabs.SelectTab1" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 1" description="Switches to the project in tab 1 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 1"/>
+            </action>
+            <action id="WindowTabs.SelectTab2" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 2" description="Switches to the project in tab 2 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 2"/>
+            </action>
+            <action id="WindowTabs.SelectTab3" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 3" description="Switches to the project in tab 3 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 3"/>
+            </action>
+            <action id="WindowTabs.SelectTab4" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 4" description="Switches to the project in tab 4 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 4"/>
+            </action>
+            <action id="WindowTabs.SelectTab5" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 5" description="Switches to the project in tab 5 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 5"/>
+            </action>
+            <action id="WindowTabs.SelectTab6" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 6" description="Switches to the project in tab 6 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 6"/>
+            </action>
+            <action id="WindowTabs.SelectTab7" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 7" description="Switches to the project in tab 7 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 7"/>
+            </action>
+            <action id="WindowTabs.SelectTab8" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 8" description="Switches to the project in tab 8 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 8"/>
+            </action>
+            <action id="WindowTabs.SelectTab9" class="br.dev.ddr.windowtabs.SelectTabAction"
+                    text="Go to Project Tab 9" description="Switches to the project in tab 9 of the strip">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt 9"/>
+            </action>
+            <action id="WindowTabs.NextTab" class="br.dev.ddr.windowtabs.StepTabAction"
+                    text="Next Project Tab" description="Switches to the project in the next tab of the strip"/>
+            <action id="WindowTabs.PreviousTab" class="br.dev.ddr.windowtabs.StepTabAction"
+                    text="Previous Project Tab" description="Switches to the project in the previous tab of the strip"/>
+            <add-to-group group-id="WindowMenu" anchor="last"/>
+        </group>
+    </actions>
 </idea-plugin>

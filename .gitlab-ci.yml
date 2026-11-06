@@ -66,10 +66,14 @@ test:
 
 verify:
   stage: test
-  # PhpStorm and GoLand on top of a restored cache do not fit on the shared runner's disk, so this job starts clean.
+  # The IDEs it downloads on top of a restored cache would take too much disk, so this job starts clean.
   cache: []
+  # Several GB of IDE downloads from JetBrains; a dropped connection is worth a second try.
+  retry:
+    max: 1
+    when: script_failure
   script:
-    # Downloads PhpStorm and GoLand (verifyIdeVersion) and checks the plugin against both.
+    # Downloads the IDEs listed in verifyIdes (gradle.properties) and checks the plugin against each.
     - ./gradlew verifyPlugin
   artifacts:
     when: always

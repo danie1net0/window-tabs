@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtilRt
 
 /** What a tab in the strip stands for. */
 sealed interface WindowTab {
@@ -22,6 +23,7 @@ sealed interface WindowTab {
         val path: String,
         val name: String,
     ) : WindowTab {
-        override val key = path
+        /** Forward slashes, like [Open.key]: on Windows the path may come with backslashes and must still match. */
+        override val key: String = FileUtilRt.toSystemIndependentName(path)
     }
 }

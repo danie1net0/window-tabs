@@ -3,6 +3,7 @@ import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -26,6 +27,10 @@ java {
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_21
+        // The plugin runs on the Kotlin stdlib bundled with the IDE; 2024.3, the oldest supported, ships 2.0.
+        apiVersion = KotlinVersion.KOTLIN_2_0
+        // Kotlin 2.4 warns that API 2.0 is deprecated; that version is the point, so keep the warning out of -Werror.
+        freeCompilerArgs.add("-Xsuppress-version-warnings")
         allWarningsAsErrors = true
     }
 }
@@ -87,9 +92,13 @@ intellijPlatform {
         // The tab strip relies on the internal ideRootPaneNorth extension point, so only real breakage fails the build.
         failureLevel = listOf(FailureLevel.COMPATIBILITY_PROBLEMS, FailureLevel.INVALID_PLUGIN, FailureLevel.MISSING_DEPENDENCIES)
         ides {
-            val version = providers.gradleProperty("verifyIdeVersion")
-            create(IntelliJPlatformType.PhpStorm, version)
-            create(IntelliJPlatformType.GoLand, version)
+            // "IU-2024.3.6,PS-2026.3,...": the oldest supported platform plus the newest of each IDE family.
+            providers
+                .gradleProperty("verifyIdes")
+                .get()
+                .split(",")
+                .map { it.trim().split("-", limit = 2) }
+                .forEach { (code, version) -> create(IntelliJPlatformType.fromCode(code), version) }
         }
     }
 }

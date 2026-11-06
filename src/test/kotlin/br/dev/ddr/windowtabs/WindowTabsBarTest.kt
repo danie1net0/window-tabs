@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.mockito.Mockito.times
@@ -13,8 +14,11 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.awt.Component
+import java.awt.Cursor
+import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -32,9 +36,10 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = WindowTabsBar(project)
 
         assertTrue(bar.isVisible)
-        assertEquals(listOf(project.name, "other"), bar.tabs().map { it.title().text })
+        assertEquals(listOf(project.name, "other"), bar.tabs().map { tab -> tab.title().text })
         assertEquals(project.basePath, bar.tabs()[0].toolTipText)
         assertEquals(other.basePath, bar.tabs()[1].toolTipText)
+        assertEquals(1, WindowTabsBar(other).strip().selectedIndex)
         assertTrue(
             bar
                 .tabs()[0]
@@ -66,7 +71,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
             AnimatedIcon.Default.INSTANCE,
             placeholder.components
                 .filterIsInstance<JBLabel>()
-                .first { it.text.isNullOrEmpty() }
+                .first { label -> label.text.isNullOrEmpty() }
                 .icon,
         )
     }
@@ -203,16 +208,16 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = WindowTabsBar(project)
         bar.setSize(600, 30)
         bar.doLayout()
-        bar.tabs().forEach {
-            it.setSize(200, 30)
-            it.doLayout()
+        bar.tabs().forEach { tab ->
+            tab.setSize(200, 30)
+            tab.doLayout()
         }
         mouse(bar.tabs()[0], MouseEvent.MOUSE_ENTERED, 10, 10)
         mouse(bar.tabs()[1], MouseEvent.MOUSE_ENTERED, 10, 10)
 
         val image = BufferedImage(600, 30, BufferedImage.TYPE_INT_ARGB)
         val graphics = image.createGraphics()
-        bar.tabs().forEach { it.paint(graphics.create()) }
+        bar.tabs().forEach { tab -> tab.paint(graphics.create()) }
         graphics.dispose()
 
         assertEquals(
@@ -221,13 +226,97 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         )
     }
 
-    private fun WindowTabsBar.tabs(): List<JPanel> = (getComponent(0) as JPanel).components.map { it as JPanel }
+    fun `test hidden on macOS unless the settings ask for it`() {
+        openAnotherProject("other")
+        WindowTabsService.getInstance().isMac = true
+
+        assertFalse(WindowTabsBar(project).isVisible)
+
+        WindowTabsSettings.getInstance().state.showOnMac = true
+        assertTrue(WindowTabsBar(project).isVisible)
+    }
+
+    fun `test shows a single project when the settings ask for it`() {
+        WindowTabsSettings.getInstance().state.showWithSingleProject = true
+
+        assertTrue(WindowTabsBar(project).isVisible)
+    }
+
+    fun `test tabs carry the project icon unless turned off`() {
+        assertNotNull(WindowTabsBar(project).tabs()[0].title().icon)
+
+        WindowTabsSettings.getInstance().state.showProjectIcons = false
+        assertNull(WindowTabsBar(project).tabs()[0].title().icon)
+    }
+
+    fun `test dragging a tab drops it where the mouse lets go`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+
+        drag(first, 10, first.width + 10)
+
+        assertEquals(listOf(second, project), openProjects())
+        assertEquals(Cursor.getDefaultCursor(), first.cursor)
+    }
+
+    fun `test a press that barely moves stays a click`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+
+        drag(first, 10, 12)
+        first.dispatchEvent(MouseEvent(first, MouseEvent.MOUSE_DRAGGED, 0, 0, 40, 5, 0, false))
+
+        assertEquals(listOf(project, second), openProjects())
+    }
+
+    fun `test the wheel scrolls a crowded strip`() {
+        repeat(8) { number -> openAnotherProject("project$number") }
+        val bar = laidOut(WindowTabsBar(project))
+        val scrollPane = bar.getComponent(0) as JBScrollPane
+
+        val unit = MouseWheelEvent.WHEEL_UNIT_SCROLL
+        scrollPane.dispatchEvent(
+            MouseWheelEvent(scrollPane, MouseWheelEvent.MOUSE_WHEEL, 0, 0, 5, 5, 0, false, unit, 1, 1),
+        )
+        assertTrue(scrollPane.viewport.viewPosition.x > 0)
+    }
+
+    private fun WindowTabsBar.strip(): TabStrip = ((getComponent(0) as JBScrollPane).viewport.view as TabStrip)
+
+    private fun WindowTabsBar.tabs(): List<JPanel> = strip().components.map { component -> component as JPanel }
 
     private fun WindowTabsBar.plusButton(): JBLabel = getComponent(1) as JBLabel
 
-    private fun JPanel.title(): JBLabel = components.filterIsInstance<JBLabel>().first { !it.text.isNullOrEmpty() }
+    private fun JPanel.labels(): List<JBLabel> = components.filterIsInstance<JBLabel>()
 
-    private fun JPanel.closeButton(): JBLabel = components.filterIsInstance<JBLabel>().first { it.text.isNullOrEmpty() }
+    private fun JPanel.title(): JBLabel = labels().first { label -> !label.text.isNullOrEmpty() }
+
+    private fun drag(
+        tab: JPanel,
+        fromX: Int,
+        toX: Int,
+    ) {
+        val down = MouseEvent.BUTTON1_DOWN_MASK
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_PRESSED, 0, down, fromX, 5, 1, false, MouseEvent.BUTTON1))
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_DRAGGED, 0, down, toX, 5, 0, false, MouseEvent.BUTTON1))
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, toX, 5, 1, false, MouseEvent.BUTTON1))
+    }
+
+    /** Lays the bar out by hand, as a headless test has no peer to do it; the strip takes its preferred width. */
+    private fun laidOut(bar: WindowTabsBar): WindowTabsBar {
+        val scrollPane = bar.getComponent(0) as JBScrollPane
+        bar.setSize(600, 30)
+        bar.doLayout()
+        scrollPane.doLayout()
+        bar.strip().size = Dimension(maxOf(scrollPane.viewport.width, bar.strip().preferredSize.width), 30)
+        bar.strip().doLayout()
+
+        return bar
+    }
+
+    private fun JPanel.closeButton(): JBLabel = labels().first { label -> label.text.isNullOrEmpty() }
 
     private fun click(
         target: Component,

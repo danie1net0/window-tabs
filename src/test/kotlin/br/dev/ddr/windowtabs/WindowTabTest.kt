@@ -15,4 +15,11 @@ class WindowTabTest : WindowTabsTestCase() {
         assertEquals("/work/later", tab.path)
         assertEquals("later", tab.name)
     }
+
+    fun `test a Windows path gets the same key as the open project's path`() {
+        val tab = WindowTab.Reopening("C:\\work\\later", "later")
+
+        assertEquals("C:/work/later", tab.key)
+        assertEquals("C:\\work\\later", tab.path)
+    }
 }

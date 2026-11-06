@@ -47,7 +47,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
 
         val tabs = service.tabs(project)
 
-        assertEquals(listOf(project.basePath, "/work/b", "/work/c"), tabs.map { it.key })
+        assertEquals(listOf(project.basePath, "/work/b", "/work/c"), tabs.map { tab -> tab.key })
         assertInstanceOf(tabs[1], WindowTab.Reopening::class.java)
     }
 
@@ -61,7 +61,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         val late = PlatformTestUtil.loadAndOpenProject(directory, testRootDisposable)
         val tabs = service.tabs(project)
 
-        assertEquals(listOf(project.basePath, late.basePath, "/work/last"), tabs.map { it.key })
+        assertEquals(listOf(project.basePath, late.basePath, "/work/last"), tabs.map { tab -> tab.key })
         assertSame(late, (tabs[1] as WindowTab.Open).project)
     }
 
@@ -71,7 +71,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
 
         val tabs = service.tabs(gone)
 
-        assertEquals(listOf(project, gone), tabs.map { (it as WindowTab.Open).project })
+        assertEquals(listOf(project, gone), tabs.map { tab -> (tab as WindowTab.Open).project })
     }
 
     fun `test finishing the reopen drops what never opened and refreshes`() {
@@ -154,5 +154,24 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         service.switchTo(project, target)
 
         assertFalse(target.isDisposed)
+    }
+
+    fun `test moving a tab changes the order and refreshes`() {
+        val second = openAnotherProject("second")
+        val calls = recordTabsChanged()
+
+        service.move(second.basePath!!, 0)
+        dispatchEvents()
+
+        assertEquals(listOf(second, project), openProjects())
+        assertEquals(1, calls())
+    }
+
+    fun `test the strip follows the settings and the OS`() {
+        assertFalse(service.showsStrip(1))
+        assertTrue(service.showsStrip(2))
+
+        service.isMac = true
+        assertFalse(service.showsStrip(2))
     }
 }

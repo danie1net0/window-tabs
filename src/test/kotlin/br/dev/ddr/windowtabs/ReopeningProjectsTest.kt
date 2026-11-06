@@ -5,35 +5,35 @@ import com.intellij.ide.RecentProjectMetaInfo
 import com.intellij.ide.RecentProjectsManagerBase
 
 class ReopeningProjectsTest : WindowTabsTestCase() {
-    private val a = WindowTab.Reopening("/work/a", "a")
-    private val b = WindowTab.Reopening("/work/b", "b")
+    private val alpha = WindowTab.Reopening("/work/alpha", "alpha")
+    private val beta = WindowTab.Reopening("/work/beta", "beta")
 
     fun `test waits for every expected project`() {
         val reopening = ReopeningProjects()
-        reopening.expect(listOf(a, b))
+        reopening.expect(listOf(alpha, beta))
 
-        assertEquals(listOf(a, b), reopening.remaining(emptySet()))
+        assertEquals(listOf(alpha, beta), reopening.remaining(emptySet()))
     }
 
     fun `test forgets an opened project even after it closes again`() {
         val reopening = ReopeningProjects()
-        reopening.expect(listOf(a, b))
+        reopening.expect(listOf(alpha, beta))
 
-        assertEquals(listOf(b), reopening.remaining(setOf("/work/a")))
-        assertEquals(listOf(b), reopening.remaining(emptySet()))
+        assertEquals(listOf(beta), reopening.remaining(setOf("/work/alpha")))
+        assertEquals(listOf(beta), reopening.remaining(emptySet()))
     }
 
     fun `test expecting again replaces the old list`() {
         val reopening = ReopeningProjects()
-        reopening.expect(listOf(a))
-        reopening.expect(listOf(b))
+        reopening.expect(listOf(alpha))
+        reopening.expect(listOf(beta))
 
-        assertEquals(listOf(b), reopening.remaining(emptySet()))
+        assertEquals(listOf(beta), reopening.remaining(emptySet()))
     }
 
     fun `test finishing drops everything still waiting`() {
         val reopening = ReopeningProjects()
-        reopening.expect(listOf(a, b))
+        reopening.expect(listOf(alpha, beta))
 
         reopening.finish()
 
@@ -49,8 +49,8 @@ class ReopeningProjectsTest : WindowTabsTestCase() {
         ) {
             val projects = ReopeningProjects.fromLastSession()
 
-            assertEquals(listOf("/work/first", "/work/second"), projects.map { it.path })
-            assertEquals(listOf("first", "Second"), projects.map { it.name })
+            assertEquals(listOf("/work/first", "/work/second"), projects.map { project -> project.path })
+            assertEquals(listOf("first", "Second"), projects.map { project -> project.name })
         }
     }
 

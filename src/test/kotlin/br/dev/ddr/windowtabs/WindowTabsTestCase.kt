@@ -21,10 +21,12 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
     /** Projects whose window the code under test asked to raise, once [fakeWindowManager] is in place. */
     protected val focused = mutableListOf<Project>()
 
-    /** The service outlives each test, so nothing a test left waiting may leak into the next one. */
+    /** The service and the settings outlive each test, so nothing a test left behind may leak into the next one. */
     override fun setUp() {
         super.setUp()
+        WindowTabsSettings.getInstance().loadState(WindowTabsSettings.Options())
         WindowTabsService.getInstance().expectReopening(emptyList())
+        WindowTabsService.getInstance().isMac = false
     }
 
     protected fun openProjects(current: Project = project): List<Project> =
@@ -32,7 +34,7 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
             .getInstance()
             .tabs(current)
             .filterIsInstance<WindowTab.Open>()
-            .map { it.project }
+            .map { tab -> tab.project }
 
     protected fun openAnotherProject(name: String): Project {
         val directory = Files.createTempDirectory(name)
@@ -63,6 +65,12 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
         return frame
     }
 
+    /** Gives each of [projects] a normal fake frame; the frames exist before stubbing, which Mockito cannot nest. */
+    protected fun WindowManager.withFrames(vararg projects: Project) {
+        val frames = projects.map { project -> project to fakeFrame() }
+        frames.forEach { (project, frame) -> `when`(getFrame(project)).thenReturn(frame) }
+    }
+
     protected fun fakeWindowManager(): WindowManager {
         val windowManager = mock(WindowManager::class.java)
         val disposable = Disposer.newDisposable()
@@ -71,7 +79,7 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
 
         val service = WindowTabsService.getInstance()
         val realFocus = service.focusWindow
-        service.focusWindow = { focused.add(it) }
+        service.focusWindow = { project -> focused.add(project) }
         Disposer.register(disposable) { service.focusWindow = realFocus }
 
         return windowManager

@@ -3,6 +3,10 @@ naming:
   FunctionNaming:
     # Test names use backticks.
     excludes: ['**/test/**']
+  # Global naming rule: whole words, never a lone letter (lambda parameters are named too, never the implicit `it`).
+  VariableMinLength:
+    active: true
+    minimumVariableNameLength: 2
 
 # Global readability rule: every control-structure body has braces, and the flow stays flat.
 style:
