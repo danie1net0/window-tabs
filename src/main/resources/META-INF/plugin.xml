@@ -4,10 +4,20 @@
     <vendor email="danielneto314@gmail.com">Daniel Neto</vendor>
 
     <description><![CDATA[
-    Shows every open project as a tab across the top of each IDE window, like the native window tabs on macOS.
-    Clicking a tab moves that project's window over the current one and brings it to the front.
-    Middle-click or the close icon closes the project.
-    While the IDE reopens the last session, the projects still on their way show as dimmed tabs.
+    <p>Every open project becomes a tab at the top of each IDE window, like the native window tabs JetBrains IDEs
+    offer on macOS. Built for Linux, where that feature does not exist.</p>
+    <ul>
+      <li><b>Click a tab</b> to switch: that project's window takes the current window's size and position
+          (or stays maximized) and comes to the front.</li>
+      <li><b>Middle-click</b>, or the <b>×</b> shown on hover, closes the project.</li>
+      <li><b>+</b> opens another project.</li>
+      <li>While the IDE reopens the last session, projects still loading show as dimmed tabs.</li>
+      <li>The strip appears only while two or more projects are open.</li>
+    </ul>
+    <p>Each project stays in its own window, so the IDE handles projects exactly as before.
+    Works in every JetBrains IDE 2026.1 or newer.</p>
+    <p><b>GNOME on Wayland:</b> if GNOME shows a "ready" notice instead of raising the window, run the IDE on X11:
+    <i>Help → Edit Custom VM Options</i> → <code>-Dawt.toolkit.name=XToolkit</code>.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
