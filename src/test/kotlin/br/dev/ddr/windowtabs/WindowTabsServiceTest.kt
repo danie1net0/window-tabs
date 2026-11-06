@@ -155,4 +155,23 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
 
         assertFalse(target.isDisposed)
     }
+
+    fun `test moving a tab changes the order and refreshes`() {
+        val second = openAnotherProject("second")
+        val calls = recordTabsChanged()
+
+        service.move(second.basePath!!, 0)
+        dispatchEvents()
+
+        assertEquals(listOf(second, project), openProjects())
+        assertEquals(1, calls())
+    }
+
+    fun `test the strip follows the settings and the OS`() {
+        assertFalse(service.showsStrip(1))
+        assertTrue(service.showsStrip(2))
+
+        service.isMac = true
+        assertFalse(service.showsStrip(2))
+    }
 }

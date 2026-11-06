@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.RecentProjectsManagerBase
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -10,30 +11,34 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Cursor
 import java.awt.Graphics
-import java.awt.GridLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.Icon
 import javax.swing.JPanel
+import javax.swing.ScrollPaneConstants
 import javax.swing.SwingConstants
 import javax.swing.SwingUtilities
+import kotlin.math.abs
 
 /** One strip per frame; the tab of the frame's own project is the selected one. */
 class WindowTabsBar(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
-    private val tabs = JPanel(GridLayout(1, 0))
+    private val tabs = TabStrip()
     private var connection: Disposable? = null
 
     init {
         isOpaque = true
         border = JBUI.Borders.customLineBottom(JBColor.border())
 
-        add(tabs, BorderLayout.CENTER)
+        add(scrollPane(), BorderLayout.CENTER)
         add(newProjectButton(), BorderLayout.EAST)
 
         rebuild()
@@ -62,16 +67,34 @@ class WindowTabsBar(
 
     override fun getBackground() = JBUI.CurrentTheme.EditorTabs.background()
 
+    private fun scrollPane(): JBScrollPane {
+        val scrollPane =
+            JBScrollPane(
+                tabs,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER,
+            )
+        scrollPane.border = JBUI.Borders.empty()
+        scrollPane.isOpaque = false
+        scrollPane.viewport.isOpaque = false
+        scrollPane.addMouseWheelListener { tabs.scrollBy(it.wheelRotation) }
+
+        return scrollPane
+    }
+
     private fun rebuild() {
         if (project.isDisposed) {
             return
         }
 
-        val windowTabs = WindowTabsService.getInstance().tabs(project)
+        val service = WindowTabsService.getInstance()
+        val windowTabs = service.tabs(project)
 
         tabs.removeAll()
         windowTabs.forEach { tabs.add(view(it)) }
-        isVisible = windowTabs.size > 1
+        val ownKey = WindowTab.Open(project).key
+        tabs.selectedIndex = windowTabs.indexOfFirst { it.key == ownKey }
+        isVisible = service.showsStrip(windowTabs.size)
 
         revalidate()
         repaint()
@@ -79,7 +102,7 @@ class WindowTabsBar(
 
     private fun view(tab: WindowTab): JPanel =
         when (tab) {
-            is WindowTab.Open -> Tab(tab.project, tab.project == project)
+            is WindowTab.Open -> Tab(tab, tab.project == project)
             is WindowTab.Reopening -> Placeholder(tab)
         }
 
@@ -108,10 +131,13 @@ class WindowTabsBar(
     }
 
     private inner class Tab(
-        private val target: Project,
+        private val tab: WindowTab.Open,
         private val selected: Boolean,
     ) : JPanel(BorderLayout()) {
+        private val target = tab.project
         private var hovered = false
+        private var dragStartX: Int? = null
+        private var dragging = false
         private val closeButton = JBLabel(AllIcons.Actions.Close)
 
         init {
@@ -119,7 +145,7 @@ class WindowTabsBar(
             border = JBUI.Borders.empty(TAB_VERTICAL_PADDING, TAB_HORIZONTAL_PADDING)
             toolTipText = target.basePath
 
-            val title = JBLabel(target.name, SwingConstants.CENTER)
+            val title = JBLabel(target.name, projectIcon(), SwingConstants.CENTER)
             title.font = JBUI.Fonts.label().asPlain()
             title.foreground = UIUtil.getContextHelpForeground()
             if (selected) {
@@ -149,7 +175,7 @@ class WindowTabsBar(
             )
             add(closeButton, BorderLayout.WEST)
 
-            addMouseListener(
+            val mouse =
                 object : MouseAdapter() {
                     override fun mouseEntered(event: MouseEvent) = updateHover(event)
 
@@ -166,8 +192,54 @@ class WindowTabsBar(
                             WindowTabsService.getInstance().switchTo(project, target)
                         }
                     }
-                },
-            )
+
+                    override fun mousePressed(event: MouseEvent) {
+                        dragStartX = event.x
+                        dragging = false
+                    }
+
+                    override fun mouseDragged(event: MouseEvent) = drag(event)
+
+                    override fun mouseReleased(event: MouseEvent) = drop(event)
+                }
+            addMouseListener(mouse)
+            addMouseMotionListener(mouse)
+        }
+
+        private fun projectIcon(): Icon? {
+            if (!WindowTabsSettings.getInstance().state.showProjectIcons) {
+                return null
+            }
+
+            val icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
+
+            return IconUtil.toSize(icon, JBUI.scale(ICON_SIZE), JBUI.scale(ICON_SIZE))
+        }
+
+        /** A press that moves far enough sideways becomes a drag; until then it may still be a click. */
+        private fun drag(event: MouseEvent) {
+            val start = dragStartX
+
+            if (start == null || abs(event.x - start) < JBUI.scale(DRAG_THRESHOLD)) {
+                return
+            }
+
+            dragging = true
+            cursor = Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
+        }
+
+        private fun drop(event: MouseEvent) {
+            val wasDragging = dragging
+            dragStartX = null
+            dragging = false
+            cursor = Cursor.getDefaultCursor()
+
+            if (!wasDragging) {
+                return
+            }
+
+            val point = SwingUtilities.convertPoint(this, event.point, tabs)
+            WindowTabsService.getInstance().move(tab.key, tabs.indexAt(point.x))
         }
 
         private fun updateHover(event: MouseEvent) {
@@ -229,6 +301,8 @@ class WindowTabsBar(
         private const val PLUS_PADDING = 10
         private const val TAB_VERTICAL_PADDING = 5
         private const val TAB_HORIZONTAL_PADDING = 8
+        private const val ICON_SIZE = 16
+        private const val DRAG_THRESHOLD = 8
 
         private fun JPanel.paintSeparator(graphics: Graphics) {
             graphics.color = JBColor.border()

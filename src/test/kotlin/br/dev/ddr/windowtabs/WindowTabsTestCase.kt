@@ -21,10 +21,12 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
     /** Projects whose window the code under test asked to raise, once [fakeWindowManager] is in place. */
     protected val focused = mutableListOf<Project>()
 
-    /** The service outlives each test, so nothing a test left waiting may leak into the next one. */
+    /** The service and the settings outlive each test, so nothing a test left behind may leak into the next one. */
     override fun setUp() {
         super.setUp()
+        WindowTabsSettings.getInstance().loadState(WindowTabsSettings.Options())
         WindowTabsService.getInstance().expectReopening(emptyList())
+        WindowTabsService.getInstance().isMac = false
     }
 
     protected fun openProjects(current: Project = project): List<Project> =
@@ -61,6 +63,12 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
         `when`(frame.bounds).thenReturn(bounds)
 
         return frame
+    }
+
+    /** Gives each of [projects] a normal fake frame; the frames exist before stubbing, which Mockito cannot nest. */
+    protected fun WindowManager.withFrames(vararg projects: Project) {
+        val frames = projects.map { it to fakeFrame() }
+        frames.forEach { (project, frame) -> `when`(getFrame(project)).thenReturn(frame) }
     }
 
     protected fun fakeWindowManager(): WindowManager {
