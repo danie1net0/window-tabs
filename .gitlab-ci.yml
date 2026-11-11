@@ -12,6 +12,8 @@ variables:
 
 default:
   image: eclipse-temurin:25-jdk
+  # webmaker-runner (Docker, x86_64). The m1-docker runner also carries the docker tag, so amd64 pins the job here.
+  tags: [docker, amd64]
   interruptible: true
   cache:
     # GitLab takes at most two files: plugin versions live in build.gradle.kts, platform versions in gradle.properties.
