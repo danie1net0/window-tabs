@@ -6,7 +6,6 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.mockito.Mockito.times
@@ -15,12 +14,12 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.awt.Component
 import java.awt.Cursor
-import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
+import javax.swing.JScrollPane
 import javax.swing.SwingUtilities
 
 class WindowTabsBarTest : WindowTabsTestCase() {
@@ -274,7 +273,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     fun `test the wheel scrolls a crowded strip`() {
         repeat(8) { number -> openAnotherProject("project$number") }
         val bar = laidOut(WindowTabsBar(project))
-        val scrollPane = bar.getComponent(0) as JBScrollPane
+        val scrollPane = bar.getComponent(0) as JScrollPane
 
         val unit = MouseWheelEvent.WHEEL_UNIT_SCROLL
         scrollPane.dispatchEvent(
@@ -283,7 +282,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertTrue(scrollPane.viewport.viewPosition.x > 0)
     }
 
-    private fun WindowTabsBar.strip(): TabStrip = ((getComponent(0) as JBScrollPane).viewport.view as TabStrip)
+    private fun WindowTabsBar.strip(): TabStrip = ((getComponent(0) as JScrollPane).viewport.view as TabStrip)
 
     private fun WindowTabsBar.tabs(): List<JPanel> = strip().components.map { component -> component as JPanel }
 
@@ -304,13 +303,13 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, toX, 5, 1, false, MouseEvent.BUTTON1))
     }
 
-    /** Lays the bar out by hand, as a headless test has no peer to do it; the strip takes its preferred width. */
+    /** Lays the bar out by hand, as a headless test has no peer to do it; the viewport sizes the strip itself. */
     private fun laidOut(bar: WindowTabsBar): WindowTabsBar {
-        val scrollPane = bar.getComponent(0) as JBScrollPane
+        val scrollPane = bar.getComponent(0) as JScrollPane
         bar.setSize(600, 30)
         bar.doLayout()
         scrollPane.doLayout()
-        bar.strip().size = Dimension(maxOf(scrollPane.viewport.width, bar.strip().preferredSize.width), 30)
+        scrollPane.viewport.doLayout()
         bar.strip().doLayout()
 
         return bar

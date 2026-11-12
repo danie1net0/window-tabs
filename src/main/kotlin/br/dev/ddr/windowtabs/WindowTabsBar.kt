@@ -11,7 +11,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -22,6 +21,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.Icon
 import javax.swing.JPanel
+import javax.swing.JScrollPane
 import javax.swing.ScrollPaneConstants
 import javax.swing.SwingConstants
 import javax.swing.SwingUtilities
@@ -67,9 +67,9 @@ class WindowTabsBar(
 
     override fun getBackground() = JBUI.CurrentTheme.EditorTabs.background()
 
-    private fun scrollPane(): JBScrollPane {
+    private fun scrollPane(): JScrollPane {
         val scrollPane =
-            JBScrollPane(
+            JScrollPane(
                 tabs,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER,
