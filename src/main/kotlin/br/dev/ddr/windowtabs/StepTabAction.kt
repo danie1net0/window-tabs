@@ -5,9 +5,8 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 
-/** Goes to the next tab (WindowTabs.NextTab) or the previous one (WindowTabs.PreviousTab), in the strip's order. */
 class StepTabAction : DumbAwareAction() {
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(event: AnActionEvent) {
         event.presentation.isEnabled = event.project != null

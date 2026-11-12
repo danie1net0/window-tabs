@@ -15,6 +15,7 @@ import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Cursor
 import java.awt.Graphics
 import java.awt.event.MouseAdapter
@@ -27,7 +28,6 @@ import javax.swing.SwingConstants
 import javax.swing.SwingUtilities
 import kotlin.math.abs
 
-/** One strip per frame; the tab of the frame's own project is the selected one. */
 class WindowTabsBar(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
@@ -65,7 +65,7 @@ class WindowTabsBar(
         super.removeNotify()
     }
 
-    override fun getBackground() = JBUI.CurrentTheme.EditorTabs.background()
+    override fun getBackground(): Color = JBUI.CurrentTheme.EditorTabs.background()
 
     private fun scrollPane(): JScrollPane {
         val scrollPane =
@@ -178,7 +178,7 @@ class WindowTabsBar(
             )
             add(closeButton, BorderLayout.WEST)
 
-            val mouse =
+            val mouseHandler =
                 object : MouseAdapter() {
                     override fun mouseEntered(event: MouseEvent) = updateHover(event)
 
@@ -191,9 +191,11 @@ class WindowTabsBar(
                             return
                         }
 
-                        if (SwingUtilities.isLeftMouseButton(event) && !selected) {
-                            WindowTabsService.getInstance().switchTo(project, target)
+                        if (!SwingUtilities.isLeftMouseButton(event) || selected) {
+                            return
                         }
+
+                        WindowTabsService.getInstance().switchTo(project, target)
                     }
 
                     override fun mousePressed(event: MouseEvent) {
@@ -205,8 +207,8 @@ class WindowTabsBar(
 
                     override fun mouseReleased(event: MouseEvent) = drop(event)
                 }
-            addMouseListener(mouse)
-            addMouseMotionListener(mouse)
+            addMouseListener(mouseHandler)
+            addMouseMotionListener(mouseHandler)
         }
 
         private fun projectIcon(): Icon? {
@@ -274,7 +276,6 @@ class WindowTabsBar(
         }
     }
 
-    /** A project the IDE has not reopened yet: dimmed, with a spinner, and nothing to click until its window is up. */
     private class Placeholder(
         tab: WindowTab.Reopening,
     ) : JPanel(BorderLayout()) {

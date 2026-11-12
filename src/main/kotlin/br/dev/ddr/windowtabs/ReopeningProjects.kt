@@ -22,24 +22,24 @@ class ReopeningProjects {
         return waiting.toList()
     }
 
-    /** The IDE is done reopening; whatever did not open is not coming. */
     fun finish() {
         waiting.clear()
     }
 
     companion object {
-        /** The projects open when the IDE last quit, oldest first, if the IDE is set to reopen them. */
         fun fromLastSession(): List<WindowTab.Reopening> {
             if (!GeneralSettings.getInstance().isReopenLastProject) {
                 return emptyList()
             }
 
-            val recent = RecentProjectsManagerBase.getInstanceEx()
+            val recentProjects = RecentProjectsManagerBase.getInstanceEx()
 
-            return recent.state.additionalInfo.entries
-                .filter { (_, info) -> info.opened && !info.hidden }
-                .sortedBy { (_, info) -> info.projectOpenTimestamp }
-                .map { (path, info) -> WindowTab.Reopening(path, info.displayName ?: recent.getProjectName(path)) }
+            return recentProjects.state.additionalInfo.entries
+                .filter { (_, metadata) -> metadata.opened && !metadata.hidden }
+                .sortedBy { (_, metadata) -> metadata.projectOpenTimestamp }
+                .map { (path, metadata) ->
+                    WindowTab.Reopening(path, metadata.displayName ?: recentProjects.getProjectName(path))
+                }
         }
     }
 }

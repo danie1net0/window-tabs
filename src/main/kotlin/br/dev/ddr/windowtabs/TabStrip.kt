@@ -9,14 +9,9 @@ import javax.swing.JViewport
 import javax.swing.Scrollable
 import javax.swing.SwingConstants
 
-/**
- * The row of tabs inside the strip's scroll pane: it stretches over the whole width while the tabs fit,
- * and keeps the minimum tab width (scrolling sideways) once they do not.
- */
 class TabStrip :
     JPanel(TabStripLayout { JBUI.scale(MINIMUM_TAB_WIDTH) }),
     Scrollable {
-    /** The tab of the frame's own project, scrolled into view by the next layout. */
     var selectedIndex: Int? = null
         set(value) {
             field = value
@@ -50,7 +45,6 @@ class TabStrip :
         scrollRectToVisible(getComponent(index).bounds)
     }
 
-    /** Which tab sits under [horizontalPosition] in this strip's coordinates; past the end counts as the last tab. */
     fun indexAt(horizontalPosition: Int): Int {
         val index = components.indexOfFirst { tab -> horizontalPosition < tab.x + tab.width }
 
@@ -67,13 +61,13 @@ class TabStrip :
         visibleRect: Rectangle,
         orientation: Int,
         direction: Int,
-    ) = JBUI.scale(MINIMUM_TAB_WIDTH) / 2
+    ): Int = JBUI.scale(MINIMUM_TAB_WIDTH) / 2
 
     override fun getScrollableBlockIncrement(
         visibleRect: Rectangle,
         orientation: Int,
         direction: Int,
-    ) = visibleRect.width
+    ): Int = visibleRect.width
 
     override fun getScrollableTracksViewportWidth(): Boolean {
         val viewport = parent as? JViewport
@@ -85,9 +79,8 @@ class TabStrip :
         return viewport.width >= preferredSize.width
     }
 
-    override fun getScrollableTracksViewportHeight() = true
+    override fun getScrollableTracksViewportHeight(): Boolean = true
 
-    /** Turns a vertical wheel turn into a sideways scroll, the only direction the strip moves. */
     fun scrollBy(wheelRotation: Int) {
         val viewport = parent as? JViewport
 

@@ -10,7 +10,7 @@ import com.intellij.openapi.project.DumbAwareAction
  * so plugin.xml registers one class nine times instead of nine classes.
  */
 class SelectTabAction : DumbAwareAction() {
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(event: AnActionEvent) {
         event.presentation.isEnabled = event.project != null
@@ -18,8 +18,8 @@ class SelectTabAction : DumbAwareAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project
-        val id = ActionManager.getInstance().getId(this)
-        val number = id?.let { registeredId -> registeredId.removePrefix(ID_PREFIX).toIntOrNull() }
+        val actionId = ActionManager.getInstance().getId(this)
+        val number = actionId?.let { registeredId -> registeredId.removePrefix(ID_PREFIX).toIntOrNull() }
 
         if (project == null || number == null) {
             return

@@ -5,10 +5,7 @@ import java.awt.Container
 import java.awt.Dimension
 import java.awt.LayoutManager
 
-/**
- * Lays the tabs side by side with equal widths, never narrower than [minimumTabWidth].
- * The strip's preferred width is what all tabs need at that minimum, so a scroll pane knows when they overflow.
- */
+/** The preferred width is what every tab needs at [minimumTabWidth], so the scroll pane knows when they overflow. */
 class TabStripLayout(
     private val minimumTabWidth: () -> Int,
 ) : LayoutManager {
@@ -28,15 +25,15 @@ class TabStripLayout(
     override fun minimumLayoutSize(parent: Container): Dimension = preferredLayoutSize(parent)
 
     override fun layoutContainer(parent: Container) {
-        val count = parent.componentCount
+        val tabCount = parent.componentCount
 
-        if (count == 0) {
+        if (tabCount == 0) {
             return
         }
 
-        val width = maxOf(parent.width / count, minimumTabWidth())
+        val tabWidth = maxOf(parent.width / tabCount, minimumTabWidth())
         parent.components.forEachIndexed { index, component ->
-            component.setBounds(index * width, 0, width, parent.height)
+            component.setBounds(index * tabWidth, 0, tabWidth, parent.height)
         }
     }
 }

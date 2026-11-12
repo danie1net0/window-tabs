@@ -8,9 +8,9 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 
 class TabStripLayoutTest {
-    private fun strip(count: Int): JPanel {
+    private fun strip(tabCount: Int): JPanel {
         val panel = JPanel(TabStripLayout { 100 })
-        repeat(count) { number ->
+        repeat(tabCount) { number ->
             val label = JLabel("tab")
             label.preferredSize = Dimension(50, HEIGHTS[number % HEIGHTS.size])
             panel.add(label)

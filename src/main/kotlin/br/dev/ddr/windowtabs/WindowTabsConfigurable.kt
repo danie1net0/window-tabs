@@ -5,7 +5,6 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 
-/** Settings | Appearance & Behavior | Window Tabs. */
 class WindowTabsConfigurable : BoundConfigurable("Window Tabs") {
     override fun createPanel(): DialogPanel {
         val options = WindowTabsSettings.getInstance().state
