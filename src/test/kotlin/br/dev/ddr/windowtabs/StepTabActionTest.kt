@@ -9,7 +9,7 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.testFramework.TestActionEvent
 
 class StepTabActionTest : WindowTabsTestCase() {
-    private fun action(id: String) = ActionManager.getInstance().getAction(id)
+    private fun action(actionId: String): AnAction = ActionManager.getInstance().getAction(actionId)
 
     private fun event(
         action: AnAction,

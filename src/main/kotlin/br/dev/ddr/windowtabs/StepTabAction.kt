@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 
 class StepTabAction : DumbAwareAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -13,7 +14,7 @@ class StepTabAction : DumbAwareAction() {
     }
 
     override fun actionPerformed(event: AnActionEvent) {
-        val project = event.project
+        val project: Project? = event.project
 
         if (project == null) {
             return

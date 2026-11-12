@@ -5,6 +5,7 @@ import com.intellij.ide.RecentProjectsManagerBase
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -18,8 +19,10 @@ import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Cursor
 import java.awt.Graphics
+import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
 import javax.swing.Icon
 import javax.swing.JPanel
 import javax.swing.JScrollPane
@@ -47,7 +50,7 @@ class WindowTabsBar(
     override fun addNotify() {
         super.addNotify()
 
-        val disposable = Disposer.newDisposable("WindowTabsBar")
+        val disposable: Disposable = Disposer.newDisposable("WindowTabsBar")
         ApplicationManager
             .getApplication()
             .messageBus
@@ -59,7 +62,7 @@ class WindowTabsBar(
     }
 
     override fun removeNotify() {
-        connection?.let { disposable -> Disposer.dispose(disposable) }
+        connection?.let { disposable: Disposable -> Disposer.dispose(disposable) }
         connection = null
 
         super.removeNotify()
@@ -77,7 +80,7 @@ class WindowTabsBar(
         scrollPane.border = JBUI.Borders.empty()
         scrollPane.isOpaque = false
         scrollPane.viewport.isOpaque = false
-        scrollPane.addMouseWheelListener { wheel -> tabs.scrollBy(wheel.wheelRotation) }
+        scrollPane.addMouseWheelListener { wheel: MouseWheelEvent -> tabs.scrollBy(wheel.wheelRotation) }
 
         return scrollPane
     }
@@ -87,14 +90,14 @@ class WindowTabsBar(
             return
         }
 
-        val service = WindowTabsService.getInstance()
-        val windowTabs = service.tabs(project)
+        val service: WindowTabsService = WindowTabsService.getInstance()
+        val windowTabs: List<WindowTab> = service.tabs(project)
 
         tabs.removeAll()
-        windowTabs.forEach { tab -> tabs.add(view(tab)) }
+        windowTabs.forEach { tab: WindowTab -> tabs.add(view(tab)) }
 
-        val ownKey = WindowTab.Open(project).key
-        tabs.selectedIndex = windowTabs.indexOfFirst { tab -> tab.key == ownKey }
+        val ownKey: String = WindowTab.Open(project).key
+        tabs.selectedIndex = windowTabs.indexOfFirst { tab: WindowTab -> tab.key == ownKey }
         isVisible = service.showsStrip(windowTabs.size)
 
         revalidate()
@@ -116,8 +119,8 @@ class WindowTabsBar(
         button.addMouseListener(
             object : MouseAdapter() {
                 override fun mouseClicked(event: MouseEvent) {
-                    val actionManager = ActionManager.getInstance()
-                    val openProject = actionManager.getAction(OPEN_PROJECT_ACTION)
+                    val actionManager: ActionManager = ActionManager.getInstance()
+                    val openProject: AnAction? = actionManager.getAction(OPEN_PROJECT_ACTION)
 
                     if (openProject == null) {
                         return
@@ -135,7 +138,7 @@ class WindowTabsBar(
         private val tab: WindowTab.Open,
         private val selected: Boolean,
     ) : JPanel(BorderLayout()) {
-        private val target = tab.project
+        private val target: Project = tab.project
         private var hovered = false
         private var dragStartX: Int? = null
         private var dragging = false
@@ -180,9 +183,9 @@ class WindowTabsBar(
 
             val mouseHandler =
                 object : MouseAdapter() {
-                    override fun mouseEntered(event: MouseEvent) = updateHover(event)
+                    override fun mouseEntered(event: MouseEvent): Unit = updateHover(event)
 
-                    override fun mouseExited(event: MouseEvent) = updateHover(event)
+                    override fun mouseExited(event: MouseEvent): Unit = updateHover(event)
 
                     override fun mouseClicked(event: MouseEvent) {
                         if (SwingUtilities.isMiddleMouseButton(event)) {
@@ -203,9 +206,9 @@ class WindowTabsBar(
                         dragging = false
                     }
 
-                    override fun mouseDragged(event: MouseEvent) = drag(event)
+                    override fun mouseDragged(event: MouseEvent): Unit = drag(event)
 
-                    override fun mouseReleased(event: MouseEvent) = drop(event)
+                    override fun mouseReleased(event: MouseEvent): Unit = drop(event)
                 }
             addMouseListener(mouseHandler)
             addMouseMotionListener(mouseHandler)
@@ -216,14 +219,14 @@ class WindowTabsBar(
                 return null
             }
 
-            val icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
+            val icon: Icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
 
             return IconUtil.toSize(icon, JBUI.scale(ICON_SIZE), JBUI.scale(ICON_SIZE))
         }
 
         /** A press that moves far enough sideways becomes a drag; until then it may still be a click. */
         private fun drag(event: MouseEvent) {
-            val start = dragStartX
+            val start: Int? = dragStartX
 
             if (start == null || abs(event.x - start) < JBUI.scale(DRAG_THRESHOLD)) {
                 return
@@ -234,7 +237,7 @@ class WindowTabsBar(
         }
 
         private fun drop(event: MouseEvent) {
-            val wasDragging = dragging
+            val wasDragging: Boolean = dragging
             dragStartX = null
             dragging = false
             cursor = Cursor.getDefaultCursor()
@@ -243,12 +246,12 @@ class WindowTabsBar(
                 return
             }
 
-            val point = SwingUtilities.convertPoint(this, event.point, tabs)
+            val point: Point = SwingUtilities.convertPoint(this, event.point, tabs)
             WindowTabsService.getInstance().move(tab.key, tabs.indexAt(point.x))
         }
 
         private fun updateHover(event: MouseEvent) {
-            val point = SwingUtilities.convertPoint(event.component, event.point, this)
+            val point: Point = SwingUtilities.convertPoint(event.component, event.point, this)
             hovered = contains(point)
             closeButton.isVisible = hovered
 
@@ -268,7 +271,7 @@ class WindowTabsBar(
                 graphics.fillRect(0, 0, width, height)
 
                 graphics.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
-                val thickness = JBUI.scale(2)
+                val thickness: Int = JBUI.scale(2)
                 graphics.fillRect(0, height - thickness, width, thickness)
             }
 

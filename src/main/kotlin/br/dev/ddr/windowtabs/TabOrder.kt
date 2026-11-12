@@ -7,9 +7,9 @@ class TabOrder(
     private val keys = initial.distinct().toMutableList()
 
     fun sync(openKeys: List<String>): List<String> {
-        val before = keys.toList()
+        val before: List<String> = keys.toList()
         keys.retainAll(openKeys.toSet())
-        openKeys.filterNot { key -> key in keys }.forEach { key -> keys.add(key) }
+        openKeys.filterNot { key: String -> key in keys }.forEach { key: String -> keys.add(key) }
 
         report(before)
 
@@ -24,7 +24,7 @@ class TabOrder(
             return
         }
 
-        val before = keys.toList()
+        val before: List<String> = keys.toList()
         keys.remove(key)
         keys.add(index.coerceIn(0, keys.size), key)
 

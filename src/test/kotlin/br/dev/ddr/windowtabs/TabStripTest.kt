@@ -17,7 +17,7 @@ class TabStripTest {
 
     private fun strip(tabCount: Int): TabStrip {
         val strip = TabStrip()
-        repeat(tabCount) { number -> strip.add(JLabel("tab $number")) }
+        repeat(tabCount) { number: Int -> strip.add(JLabel("tab $number")) }
 
         return strip
     }

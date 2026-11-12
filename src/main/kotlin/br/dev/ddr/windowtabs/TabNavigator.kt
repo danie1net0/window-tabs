@@ -9,7 +9,7 @@ object TabNavigator {
         current: Project,
         index: Int,
     ) {
-        val target = service.tabs(current).getOrNull(index)
+        val target: WindowTab? = service.tabs(current).getOrNull(index)
 
         if (target !is WindowTab.Open || target.project == current) {
             return
@@ -22,14 +22,17 @@ object TabNavigator {
         current: Project,
         step: Int,
     ) {
-        val openProjects = service.tabs(current).filterIsInstance<WindowTab.Open>().map { tab -> tab.project }
+        val openProjects: List<Project> =
+            service.tabs(current).filterIsInstance<WindowTab.Open>().map { tab: WindowTab.Open ->
+                tab.project
+            }
 
         if (openProjects.size < 2) {
             return
         }
 
-        val index = openProjects.indexOf(current)
-        val target = openProjects[Math.floorMod(index + step, openProjects.size)]
+        val index: Int = openProjects.indexOf(current)
+        val target: Project = openProjects[Math.floorMod(index + step, openProjects.size)]
         service.switchTo(current, target)
     }
 }

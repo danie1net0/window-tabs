@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import com.intellij.util.ui.JBUI
+import java.awt.Component
 import java.awt.Dimension
 import java.awt.Point
 import java.awt.Rectangle
@@ -36,7 +37,7 @@ class TabStrip :
         }
 
         scrollPending = false
-        val index = selectedIndex
+        val index: Int? = selectedIndex
 
         if (index == null || index >= componentCount) {
             return
@@ -46,7 +47,7 @@ class TabStrip :
     }
 
     fun indexAt(horizontalPosition: Int): Int {
-        val index = components.indexOfFirst { tab -> horizontalPosition < tab.x + tab.width }
+        val index: Int = components.indexOfFirst { tab: Component -> horizontalPosition < tab.x + tab.width }
 
         if (index < 0) {
             return componentCount - 1
@@ -70,7 +71,7 @@ class TabStrip :
     ): Int = visibleRect.width
 
     override fun getScrollableTracksViewportWidth(): Boolean {
-        val viewport = parent as? JViewport
+        val viewport: JViewport? = parent as? JViewport
 
         if (viewport == null) {
             return true
@@ -82,15 +83,15 @@ class TabStrip :
     override fun getScrollableTracksViewportHeight(): Boolean = true
 
     fun scrollBy(wheelRotation: Int) {
-        val viewport = parent as? JViewport
+        val viewport: JViewport? = parent as? JViewport
 
         if (viewport == null) {
             return
         }
 
-        val step = getScrollableUnitIncrement(viewport.viewRect, SwingConstants.HORIZONTAL, wheelRotation)
-        val farthestLeft = maxOf(0, width - viewport.width)
-        val left = (viewport.viewPosition.x + wheelRotation * step).coerceIn(0, farthestLeft)
+        val step: Int = getScrollableUnitIncrement(viewport.viewRect, SwingConstants.HORIZONTAL, wheelRotation)
+        val farthestLeft: Int = maxOf(0, width - viewport.width)
+        val left: Int = (viewport.viewPosition.x + wheelRotation * step).coerceIn(0, farthestLeft)
         viewport.viewPosition = Point(left, 0)
     }
 

@@ -34,7 +34,7 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
             .getInstance()
             .tabs(current)
             .filterIsInstance<WindowTab.Open>()
-            .map { tab -> tab.project }
+            .map { tab: WindowTab.Open -> tab.project }
 
     protected fun openAnotherProject(name: String): Project {
         val directory = Files.createTempDirectory(name)
@@ -67,8 +67,8 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
 
     /** Gives each of [projects] a normal fake frame; the frames exist before stubbing, which Mockito cannot nest. */
     protected fun WindowManager.withFrames(vararg projects: Project) {
-        val frames = projects.map { project -> project to fakeFrame() }
-        frames.forEach { (project, frame) -> `when`(getFrame(project)).thenReturn(frame) }
+        val frames = projects.map { project: Project -> project to fakeFrame() }
+        frames.forEach { (project: Project, frame: JFrame) -> `when`(getFrame(project)).thenReturn(frame) }
     }
 
     protected fun fakeWindowManager(): WindowManager {
@@ -79,7 +79,7 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
 
         val service = WindowTabsService.getInstance()
         val realFocus = service.focusWindow
-        service.focusWindow = { project -> focused.add(project) }
+        service.focusWindow = { project: Project -> focused.add(project) }
         Disposer.register(disposable) { service.focusWindow = realFocus }
 
         return windowManager
@@ -96,5 +96,5 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
         return { calls }
     }
 
-    protected fun dispatchEvents() = PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    protected fun dispatchEvents(): Unit = PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 }

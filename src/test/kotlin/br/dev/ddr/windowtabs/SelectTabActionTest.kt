@@ -9,7 +9,11 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.testFramework.TestActionEvent
 
 class SelectTabActionTest : WindowTabsTestCase() {
-    private fun action(number: Int) = ActionManager.getInstance().getAction("${SelectTabAction.ID_PREFIX}$number")
+    private fun action(number: Int): AnAction {
+        val actionId: String = "${SelectTabAction.ID_PREFIX}$number"
+
+        return ActionManager.getInstance().getAction(actionId)
+    }
 
     private fun event(
         action: AnAction,
@@ -25,7 +29,7 @@ class SelectTabActionTest : WindowTabsTestCase() {
     }
 
     fun `test registers one action per tab number`() {
-        (1..9).forEach { number -> assertInstanceOf(action(number), SelectTabAction::class.java) }
+        (1..9).forEach { number: Int -> assertInstanceOf(action(number), SelectTabAction::class.java) }
     }
 
     fun `test goes to the tab with the action's number`() {

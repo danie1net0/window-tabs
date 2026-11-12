@@ -8,6 +8,6 @@ fun interface WindowTabsListener {
     companion object {
         @JvmField
         @Topic.AppLevel
-        val TOPIC = Topic(WindowTabsListener::class.java, Topic.BroadcastDirection.NONE)
+        val TOPIC: Topic<WindowTabsListener> = Topic(WindowTabsListener::class.java, Topic.BroadcastDirection.NONE)
     }
 }

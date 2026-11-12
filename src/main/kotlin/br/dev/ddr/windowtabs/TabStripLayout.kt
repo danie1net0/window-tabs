@@ -12,12 +12,15 @@ class TabStripLayout(
     override fun addLayoutComponent(
         name: String?,
         component: Component?,
-    ) = Unit
+    ): Unit = Unit
 
-    override fun removeLayoutComponent(component: Component?) = Unit
+    override fun removeLayoutComponent(component: Component?): Unit = Unit
 
     override fun preferredLayoutSize(parent: Container): Dimension {
-        val height = parent.components.fold(0) { tallest, component -> maxOf(tallest, component.preferredSize.height) }
+        val height: Int =
+            parent.components.fold(0) { tallest: Int, component: Component ->
+                maxOf(tallest, component.preferredSize.height)
+            }
 
         return Dimension(parent.componentCount * minimumTabWidth(), height)
     }
@@ -25,14 +28,14 @@ class TabStripLayout(
     override fun minimumLayoutSize(parent: Container): Dimension = preferredLayoutSize(parent)
 
     override fun layoutContainer(parent: Container) {
-        val tabCount = parent.componentCount
+        val tabCount: Int = parent.componentCount
 
         if (tabCount == 0) {
             return
         }
 
-        val tabWidth = maxOf(parent.width / tabCount, minimumTabWidth())
-        parent.components.forEachIndexed { index, component ->
+        val tabWidth: Int = maxOf(parent.width / tabCount, minimumTabWidth())
+        parent.components.forEachIndexed { index: Int, component: Component ->
             component.setBounds(index * tabWidth, 0, tabWidth, parent.height)
         }
     }

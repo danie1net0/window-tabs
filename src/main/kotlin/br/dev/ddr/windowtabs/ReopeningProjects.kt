@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import com.intellij.ide.GeneralSettings
+import com.intellij.ide.RecentProjectMetaInfo
 import com.intellij.ide.RecentProjectsManagerBase
 
 /**
@@ -17,7 +18,7 @@ class ReopeningProjects {
 
     /** Forgets, for good, the ones whose window is open now: closing that project later leaves no placeholder. */
     fun remaining(openKeys: Set<String>): List<WindowTab.Reopening> {
-        waiting.removeAll { project -> project.key in openKeys }
+        waiting.removeAll { project: WindowTab.Reopening -> project.key in openKeys }
 
         return waiting.toList()
     }
@@ -32,12 +33,12 @@ class ReopeningProjects {
                 return emptyList()
             }
 
-            val recentProjects = RecentProjectsManagerBase.getInstanceEx()
+            val recentProjects: RecentProjectsManagerBase = RecentProjectsManagerBase.getInstanceEx()
 
             return recentProjects.state.additionalInfo.entries
-                .filter { (_, metadata) -> metadata.opened && !metadata.hidden }
-                .sortedBy { (_, metadata) -> metadata.projectOpenTimestamp }
-                .map { (path, metadata) ->
+                .filter { (_, metadata: RecentProjectMetaInfo) -> metadata.opened && !metadata.hidden }
+                .sortedBy { (_, metadata: RecentProjectMetaInfo) -> metadata.projectOpenTimestamp }
+                .map { (path: String, metadata: RecentProjectMetaInfo) ->
                     WindowTab.Reopening(path, metadata.displayName ?: recentProjects.getProjectName(path))
                 }
         }

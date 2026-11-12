@@ -10,7 +10,7 @@ import javax.swing.JPanel
 class TabStripLayoutTest {
     private fun strip(tabCount: Int): JPanel {
         val panel = JPanel(TabStripLayout { 100 })
-        repeat(tabCount) { number ->
+        repeat(tabCount) { number: Int ->
             val label = JLabel("tab")
             label.preferredSize = Dimension(50, HEIGHTS[number % HEIGHTS.size])
             panel.add(label)
@@ -70,6 +70,6 @@ class TabStripLayoutTest {
 
     private companion object {
         /** Not sorted, so the tallest tab is neither the first nor the last. */
-        val HEIGHTS = listOf(22, 24, 20)
+        val HEIGHTS: List<Int> = listOf(22, 24, 20)
     }
 }

@@ -7,7 +7,7 @@ import com.intellij.ui.dsl.builder.panel
 
 class WindowTabsConfigurable : BoundConfigurable("Window Tabs") {
     override fun createPanel(): DialogPanel {
-        val options = WindowTabsSettings.getInstance().state
+        val options: WindowTabsSettings.Options = WindowTabsSettings.getInstance().state
 
         return panel {
             group("Tab Strip") {

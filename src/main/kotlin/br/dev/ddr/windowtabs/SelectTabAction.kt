@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 
 /**
  * Goes to the tab whose number ends the action id (WindowTabs.SelectTab1 … WindowTabs.SelectTab9),
@@ -17,9 +18,9 @@ class SelectTabAction : DumbAwareAction() {
     }
 
     override fun actionPerformed(event: AnActionEvent) {
-        val project = event.project
-        val actionId = ActionManager.getInstance().getId(this)
-        val number = actionId?.let { registeredId -> registeredId.removePrefix(ID_PREFIX).toIntOrNull() }
+        val project: Project? = event.project
+        val actionId: String? = ActionManager.getInstance().getId(this)
+        val number: Int? = actionId?.let { registeredId: String -> registeredId.removePrefix(ID_PREFIX).toIntOrNull() }
 
         if (project == null || number == null) {
             return
