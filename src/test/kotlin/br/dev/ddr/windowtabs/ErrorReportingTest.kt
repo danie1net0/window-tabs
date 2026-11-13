@@ -17,6 +17,6 @@ class ErrorReportingTest : WindowTabsTestCase() {
     }
 
     companion object {
-        private const val PLUGIN_ID = "br.dev.ddr.windowtabs"
+        private const val PLUGIN_ID: String = "br.dev.ddr.windowtabs"
     }
 }

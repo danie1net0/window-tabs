@@ -10,10 +10,10 @@ import javax.swing.JViewport
 import javax.swing.Scrollable
 import javax.swing.SwingConstants
 
-class TabStrip :
+public class TabStrip :
     JPanel(TabStripLayout { JBUI.scale(MINIMUM_TAB_WIDTH) }),
     Scrollable {
-    var selectedIndex: Int? = null
+    public var selectedIndex: Int? = null
         set(value) {
             field = value
             scrollPending = true
@@ -46,7 +46,7 @@ class TabStrip :
         scrollRectToVisible(getComponent(index).bounds)
     }
 
-    fun indexAt(horizontalPosition: Int): Int {
+    public fun indexAt(horizontalPosition: Int): Int {
         val index: Int = components.indexOfFirst { tab: Component -> horizontalPosition < tab.x + tab.width }
 
         if (index < 0) {
@@ -82,7 +82,7 @@ class TabStrip :
 
     override fun getScrollableTracksViewportHeight(): Boolean = true
 
-    fun scrollBy(wheelRotation: Int) {
+    public fun scrollBy(wheelRotation: Int) {
         val viewport: JViewport? = parent as? JViewport
 
         if (viewport == null) {
@@ -95,8 +95,8 @@ class TabStrip :
         viewport.viewPosition = Point(left, 0)
     }
 
-    companion object {
+    public companion object {
         /** Below this a project name is mostly an ellipsis. */
-        const val MINIMUM_TAB_WIDTH = 120
+        public const val MINIMUM_TAB_WIDTH: Int = 120
     }
 }

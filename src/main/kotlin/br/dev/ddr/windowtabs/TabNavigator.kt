@@ -2,10 +2,10 @@ package br.dev.ddr.windowtabs
 
 import com.intellij.openapi.project.Project
 
-object TabNavigator {
+public object TabNavigator {
     private val service: WindowTabsService get() = WindowTabsService.getInstance()
 
-    fun selectTab(
+    public fun selectTab(
         current: Project,
         index: Int,
     ) {
@@ -18,7 +18,7 @@ object TabNavigator {
         service.switchTo(current, target.project)
     }
 
-    fun stepTab(
+    public fun stepTab(
         current: Project,
         step: Int,
     ) {

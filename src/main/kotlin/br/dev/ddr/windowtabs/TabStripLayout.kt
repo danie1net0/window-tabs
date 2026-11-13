@@ -6,7 +6,7 @@ import java.awt.Dimension
 import java.awt.LayoutManager
 
 /** The preferred width is what every tab needs at [minimumTabWidth], so the scroll pane knows when they overflow. */
-class TabStripLayout(
+public class TabStripLayout(
     private val minimumTabWidth: () -> Int,
 ) : LayoutManager {
     override fun addLayoutComponent(

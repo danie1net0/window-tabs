@@ -1,12 +1,12 @@
 package br.dev.ddr.windowtabs
 
-class TabOrder(
+public class TabOrder(
     initial: List<String> = emptyList(),
     private val changed: (List<String>) -> Unit = {},
 ) {
     private val keys = initial.distinct().toMutableList()
 
-    fun sync(openKeys: List<String>): List<String> {
+    public fun sync(openKeys: List<String>): List<String> {
         val before: List<String> = keys.toList()
         keys.retainAll(openKeys.toSet())
         openKeys.filterNot { key: String -> key in keys }.forEach { key: String -> keys.add(key) }
@@ -16,7 +16,7 @@ class TabOrder(
         return keys.toList()
     }
 
-    fun move(
+    public fun move(
         key: String,
         index: Int,
     ) {

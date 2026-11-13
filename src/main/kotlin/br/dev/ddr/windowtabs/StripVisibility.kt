@@ -1,7 +1,7 @@
 package br.dev.ddr.windowtabs
 
-object StripVisibility {
-    fun shows(
+public object StripVisibility {
+    public fun shows(
         tabCount: Int,
         options: WindowTabsSettings.Options,
         isMac: Boolean,

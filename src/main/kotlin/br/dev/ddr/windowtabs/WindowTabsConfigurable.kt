@@ -5,7 +5,7 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 
-class WindowTabsConfigurable : BoundConfigurable("Window Tabs") {
+public class WindowTabsConfigurable : BoundConfigurable("Window Tabs") {
     override fun createPanel(): DialogPanel {
         val options: WindowTabsSettings.Options = WindowTabsSettings.getInstance().state
 
@@ -40,9 +40,9 @@ class WindowTabsConfigurable : BoundConfigurable("Window Tabs") {
     }
 
     private companion object {
-        const val MAC_COMMENT =
+        const val MAC_COMMENT: String =
             "macOS can already merge project windows into native tabs (Window | Merge All Project Windows)."
-        const val SHORTCUTS_COMMENT =
+        const val SHORTCUTS_COMMENT: String =
             "Alt+Shift+1…9 go to a tab. Next Project Tab and Previous Project Tab have no shortcut by default; " +
                 "assign them in Settings | Keymap."
     }

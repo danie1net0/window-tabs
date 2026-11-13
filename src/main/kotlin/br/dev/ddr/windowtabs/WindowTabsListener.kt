@@ -2,12 +2,13 @@ package br.dev.ddr.windowtabs
 
 import com.intellij.util.messages.Topic
 
-fun interface WindowTabsListener {
-    fun tabsChanged()
+public fun interface WindowTabsListener {
+    public fun tabsChanged()
 
-    companion object {
+    public companion object {
         @JvmField
         @Topic.AppLevel
-        val TOPIC: Topic<WindowTabsListener> = Topic(WindowTabsListener::class.java, Topic.BroadcastDirection.NONE)
+        public val TOPIC: Topic<WindowTabsListener> =
+            Topic(WindowTabsListener::class.java, Topic.BroadcastDirection.NONE)
     }
 }

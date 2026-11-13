@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 
-class StepTabAction : DumbAwareAction() {
+public class StepTabAction : DumbAwareAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(event: AnActionEvent) {
@@ -29,8 +29,8 @@ class StepTabAction : DumbAwareAction() {
         TabNavigator.stepTab(project, step)
     }
 
-    companion object {
-        const val NEXT_ID = "WindowTabs.NextTab"
-        const val PREVIOUS_ID = "WindowTabs.PreviousTab"
+    public companion object {
+        public const val NEXT_ID: String = "WindowTabs.NextTab"
+        public const val PREVIOUS_ID: String = "WindowTabs.PreviousTab"
     }
 }

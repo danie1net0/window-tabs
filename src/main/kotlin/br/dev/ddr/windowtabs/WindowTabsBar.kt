@@ -31,7 +31,7 @@ import javax.swing.SwingConstants
 import javax.swing.SwingUtilities
 import kotlin.math.abs
 
-class WindowTabsBar(
+public class WindowTabsBar(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
     private val tabs = TabStrip()
@@ -302,14 +302,14 @@ class WindowTabsBar(
         }
     }
 
-    companion object {
-        const val OPEN_PROJECT_ACTION = "OpenFile"
+    public companion object {
+        public const val OPEN_PROJECT_ACTION: String = "OpenFile"
 
-        private const val PLUS_PADDING = 10
-        private const val TAB_VERTICAL_PADDING = 5
-        private const val TAB_HORIZONTAL_PADDING = 8
-        private const val ICON_SIZE = 16
-        private const val DRAG_THRESHOLD = 8
+        private const val PLUS_PADDING: Int = 10
+        private const val TAB_VERTICAL_PADDING: Int = 5
+        private const val TAB_HORIZONTAL_PADDING: Int = 8
+        private const val ICON_SIZE: Int = 16
+        private const val DRAG_THRESHOLD: Int = 8
 
         private fun JPanel.paintSeparator(graphics: Graphics) {
             graphics.color = JBColor.border()

@@ -9,19 +9,19 @@ import com.intellij.openapi.components.service
 
 @Service(Service.Level.APP)
 @State(name = "WindowTabs", storages = [Storage("windowTabs.xml")])
-class WindowTabsSettings : SimplePersistentStateComponent<WindowTabsSettings.Options>(Options()) {
-    class Options : BaseState() {
-        var showWithSingleProject by property(false)
+public class WindowTabsSettings : SimplePersistentStateComponent<WindowTabsSettings.Options>(Options()) {
+    public class Options : BaseState() {
+        public var showWithSingleProject: Boolean by property(false)
 
-        var showProjectIcons by property(true)
+        public var showProjectIcons: Boolean by property(true)
 
         /** macOS already merges project windows into native tabs, so the strip stays off there unless asked for. */
-        var showOnMac by property(false)
+        public var showOnMac: Boolean by property(false)
 
-        var tabOrder by list<String>()
+        public var tabOrder: MutableList<String> by list<String>()
     }
 
-    companion object {
-        fun getInstance(): WindowTabsSettings = service()
+    public companion object {
+        public fun getInstance(): WindowTabsSettings = service()
     }
 }

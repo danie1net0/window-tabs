@@ -10,7 +10,7 @@ import com.intellij.openapi.project.Project
  * Goes to the tab whose number ends the action id (WindowTabs.SelectTab1 … WindowTabs.SelectTab9),
  * so plugin.xml registers one class nine times instead of nine classes.
  */
-class SelectTabAction : DumbAwareAction() {
+public class SelectTabAction : DumbAwareAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(event: AnActionEvent) {
@@ -29,7 +29,7 @@ class SelectTabAction : DumbAwareAction() {
         TabNavigator.selectTab(project, number - 1)
     }
 
-    companion object {
-        const val ID_PREFIX = "WindowTabs.SelectTab"
+    public companion object {
+        public const val ID_PREFIX: String = "WindowTabs.SelectTab"
     }
 }

@@ -3,12 +3,12 @@ package br.dev.ddr.windowtabs
 import java.awt.Frame
 import java.awt.Rectangle
 
-data class FramePlacement(
+public data class FramePlacement(
     val extendedState: Int,
     val bounds: Rectangle?,
 ) {
-    companion object {
-        fun matching(
+    public companion object {
+        public fun matching(
             sourceState: Int,
             sourceBounds: Rectangle,
         ): FramePlacement {
