@@ -13,9 +13,9 @@ class WindowTabsOpenActivityTest : WindowTabsTestCase() {
         super.setUp()
         val service = WindowTabsService.getInstance()
         val realSchedule = service.scheduleReopenEnd
-        service.scheduleReopenEnd = { runnable ->
+        service.scheduleReopenEnd = { runnable: Runnable ->
             scheduled.add(runnable)
-            CompletableFuture<Unit>().also { future -> futures.add(future) }
+            CompletableFuture<Unit>().also { future: CompletableFuture<Unit> -> futures.add(future) }
         }
         Disposer.register(testRootDisposable) { service.scheduleReopenEnd = realSchedule }
     }

@@ -1,8 +1,7 @@
 package br.dev.ddr.windowtabs
 
-/** Whether a frame shows the strip, given how many tabs it would have. */
-object StripVisibility {
-    fun shows(
+public object StripVisibility {
+    public fun shows(
         tabCount: Int,
         options: WindowTabsSettings.Options,
         isMac: Boolean,

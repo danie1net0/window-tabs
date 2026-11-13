@@ -42,37 +42,40 @@ class ReopeningProjectsTest : WindowTabsTestCase() {
 
     fun `test the last session's open projects, oldest first, skipping closed and hidden ones`() {
         withLastSession(
-            "/work/second" to projectInfo(opened = true, timestamp = 2, displayName = "Second"),
-            "/work/first" to projectInfo(opened = true, timestamp = 1),
-            "/work/closed" to projectInfo(opened = false, timestamp = 3),
-            "/work/hidden" to projectInfo(opened = true, timestamp = 4, hidden = true),
+            "/work/second" to projectMetadata(opened = true, timestamp = 2, displayName = "Second"),
+            "/work/first" to projectMetadata(opened = true, timestamp = 1),
+            "/work/closed" to projectMetadata(opened = false, timestamp = 3),
+            "/work/hidden" to projectMetadata(opened = true, timestamp = 4, hidden = true),
         ) {
             val projects = ReopeningProjects.fromLastSession()
 
-            assertEquals(listOf("/work/first", "/work/second"), projects.map { project -> project.path })
-            assertEquals(listOf("first", "Second"), projects.map { project -> project.name })
+            assertEquals(
+                listOf("/work/first", "/work/second"),
+                projects.map { project: WindowTab.Reopening -> project.path },
+            )
+            assertEquals(listOf("first", "Second"), projects.map { project: WindowTab.Reopening -> project.name })
         }
     }
 
     fun `test nothing to wait for when the IDE does not reopen projects`() {
-        withLastSession("/work/first" to projectInfo(opened = true, timestamp = 1), reopen = false) {
+        withLastSession("/work/first" to projectMetadata(opened = true, timestamp = 1), reopen = false) {
             assertEmpty(ReopeningProjects.fromLastSession())
         }
     }
 
-    private fun projectInfo(
+    private fun projectMetadata(
         opened: Boolean,
         timestamp: Long,
         hidden: Boolean = false,
         displayName: String? = null,
     ): RecentProjectMetaInfo {
-        val projectInfo = RecentProjectMetaInfo()
-        projectInfo.opened = opened
-        projectInfo.hidden = hidden
-        projectInfo.projectOpenTimestamp = timestamp
-        projectInfo.displayName = displayName
+        val projectMetadata = RecentProjectMetaInfo()
+        projectMetadata.opened = opened
+        projectMetadata.hidden = hidden
+        projectMetadata.projectOpenTimestamp = timestamp
+        projectMetadata.displayName = displayName
 
-        return projectInfo
+        return projectMetadata
     }
 
     /** Swaps the recent-projects state and the reopen setting for the length of [block]. */

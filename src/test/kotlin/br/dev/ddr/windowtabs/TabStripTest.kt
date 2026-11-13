@@ -15,9 +15,9 @@ import javax.swing.SwingConstants
 class TabStripTest {
     private val minimumWidth = JBUI.scale(TabStrip.MINIMUM_TAB_WIDTH)
 
-    private fun strip(count: Int): TabStrip {
+    private fun strip(tabCount: Int): TabStrip {
         val strip = TabStrip()
-        repeat(count) { number -> strip.add(JLabel("tab $number")) }
+        repeat(tabCount) { number: Int -> strip.add(JLabel("tab $number")) }
 
         return strip
     }

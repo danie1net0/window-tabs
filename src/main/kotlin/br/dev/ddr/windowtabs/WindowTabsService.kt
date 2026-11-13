@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import com.intellij.ide.impl.ProjectUtil
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
@@ -11,60 +12,63 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.awt.Frame
+import java.awt.Rectangle
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import javax.swing.JFrame
 
 @Service(Service.Level.APP)
-class WindowTabsService {
+public class WindowTabsService {
     private val order =
-        TabOrder(WindowTabsSettings.getInstance().state.tabOrder) { keys ->
+        TabOrder(WindowTabsSettings.getInstance().state.tabOrder) { keys: List<String> ->
             WindowTabsSettings.getInstance().state.tabOrder = keys.toMutableList()
         }
     private val reopening = ReopeningProjects()
-
-    init {
-        reopening.expect(ReopeningProjects.fromLastSession())
-    }
 
     /**
      * Runs [Runnable] once the IDE has gone quiet; tests swap it out to end the reopen on demand.
      * The platform's own "last projects reopened" event only exists from 2025.x on, so a quiet period stands in for it.
      */
-    internal var scheduleReopenEnd: (Runnable) -> Future<*> = { reopenEnd ->
+    internal var scheduleReopenEnd: (Runnable) -> Future<*> = { reopenEnd: Runnable ->
         AppExecutorUtil.getAppScheduledExecutorService().schedule(reopenEnd, REOPEN_QUIET_SECONDS, TimeUnit.SECONDS)
     }
 
     private var pendingReopenEnd: Future<*>? = null
 
     /** Whether the current OS counts as macOS for the strip; tests flip it to cover both sides. */
-    internal var isMac = SystemInfo.isMac
+    internal var isMac: Boolean = SystemInfo.isMac
 
     /** Raises a project's window; tests swap it out because the real one needs real frames. */
-    internal var focusWindow: (Project) -> Unit = { project -> ProjectUtil.focusProjectWindow(project, true) }
+    internal var focusWindow: (Project) -> Unit = { project: Project -> ProjectUtil.focusProjectWindow(project, true) }
 
-    /**
-     * The tabs for the window of [current]: every open project plus the ones the IDE is still reopening.
-     * [current] counts as open even before ProjectManager lists it, so a window never shows itself as a placeholder.
-     */
-    fun tabs(current: Project): List<WindowTab> {
-        val open = ProjectManager.getInstance().openProjects.toList() + current
-
-        return tabsOf(open.distinct())
+    init {
+        reopening.expect(ReopeningProjects.fromLastSession())
     }
 
-    private fun tabsOf(open: List<Project>): List<WindowTab> {
+    /** [current] counts as open before ProjectManager lists it, so a window never shows itself as a placeholder. */
+    public fun tabs(current: Project): List<WindowTab> {
+        val openProjects: List<Project> = ProjectManager.getInstance().openProjects.toList() + current
+
+        return tabsOf(openProjects.distinct())
+    }
+
+    private fun tabsOf(openProjects: List<Project>): List<WindowTab> {
         val byKey = mutableMapOf<String, WindowTab>()
-        open.map { project -> WindowTab.Open(project) }.forEach { tab -> byKey[tab.key] = tab }
-        reopening.remaining(byKey.keys).forEach { tab -> byKey[tab.key] = tab }
+        openProjects
+            .map { project: Project -> WindowTab.Open(project) }
+            .forEach { tab: WindowTab.Open -> byKey[tab.key] = tab }
+        reopening.remaining(byKey.keys).forEach { tab: WindowTab.Reopening -> byKey[tab.key] = tab }
 
-        return order.sync(byKey.keys.toList()).map { key -> byKey.getValue(key) }
+        return order.sync(byKey.keys.toList()).map { key: String -> byKey.getValue(key) }
     }
 
-    /** Whether a window with [tabCount] tabs shows the strip, under the current settings. */
-    fun showsStrip(tabCount: Int) = StripVisibility.shows(tabCount, WindowTabsSettings.getInstance().state, isMac)
+    public fun showsStrip(tabCount: Int): Boolean {
+        val options: WindowTabsSettings.Options = WindowTabsSettings.getInstance().state
 
-    /** Drops the tab [key] at [index] in the strip, after a drag. */
-    fun move(
+        return StripVisibility.shows(tabCount, options, isMac)
+    }
+
+    public fun move(
         key: String,
         index: Int,
     ) {
@@ -79,20 +83,20 @@ class WindowTabsService {
     }
 
     /** A project window is up: refresh the strips and wait for the next one before calling the reopen over. */
-    fun projectOpened() {
+    public fun projectOpened() {
         notifyChanged()
         pendingReopenEnd?.cancel(false)
         pendingReopenEnd = scheduleReopenEnd(Runnable { reopenFinished() })
     }
 
-    fun reopenFinished() {
+    public fun reopenFinished() {
         reopening.finish()
         notifyChanged()
     }
 
     /** Refreshes the strips even under a modal dialog or progress, which the IDE may show while it reopens projects. */
-    fun notifyChanged() {
-        val application = ApplicationManager.getApplication()
+    public fun notifyChanged() {
+        val application: Application = ApplicationManager.getApplication()
         application.invokeLater(
             { application.messageBus.syncPublisher(WindowTabsListener.TOPIC).tabsChanged() },
             ModalityState.any(),
@@ -100,25 +104,33 @@ class WindowTabsService {
     }
 
     /** Puts the target frame where the current one is and brings it to the front, so switching feels like a tab. */
-    fun switchTo(
+    public fun switchTo(
         current: Project,
         target: Project,
     ) {
-        val windowManager = WindowManager.getInstance()
-        val source = windowManager.getFrame(current)
-        val destination = windowManager.getFrame(target)
-
-        if (source != null && destination != null) {
-            val placement = FramePlacement.matching(source.extendedState, source.bounds)
-            destination.extendedState = Frame.NORMAL
-            placement.bounds?.let { bounds -> destination.bounds = bounds }
-            destination.extendedState = placement.extendedState
-        }
-
+        placeOver(current, target)
         focusWindow(target)
     }
 
-    fun close(project: Project) {
+    private fun placeOver(
+        current: Project,
+        target: Project,
+    ) {
+        val windowManager: WindowManager = WindowManager.getInstance()
+        val source: JFrame? = windowManager.getFrame(current)
+        val destination: JFrame? = windowManager.getFrame(target)
+
+        if (source == null || destination == null) {
+            return
+        }
+
+        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds)
+        destination.extendedState = Frame.NORMAL
+        placement.bounds?.let { bounds: Rectangle -> destination.bounds = bounds }
+        destination.extendedState = placement.extendedState
+    }
+
+    public fun close(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             if (project.isDisposed) {
                 return@invokeLater
@@ -128,10 +140,10 @@ class WindowTabsService {
         }
     }
 
-    companion object {
+    public companion object {
         /** No new project window for this long means the IDE is done reopening the last session. */
-        private const val REOPEN_QUIET_SECONDS = 30L
+        private const val REOPEN_QUIET_SECONDS: Long = 30L
 
-        fun getInstance(): WindowTabsService = service()
+        public fun getInstance(): WindowTabsService = service()
     }
 }

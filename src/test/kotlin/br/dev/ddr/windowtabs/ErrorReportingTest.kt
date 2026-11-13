@@ -10,13 +10,13 @@ class ErrorReportingTest : WindowTabsTestCase() {
             ExtensionPointName
                 .create<ErrorReportSubmitter>("com.intellij.errorHandler")
                 .extensionList
-                .filter { submitter -> submitter.pluginDescriptor.pluginId.idString == PLUGIN_ID }
+                .filter { submitter: ErrorReportSubmitter -> submitter.pluginDescriptor.pluginId.idString == PLUGIN_ID }
 
         assertEquals(1, submitters.size)
         assertInstanceOf(submitters.single(), JetBrainsMarketplaceErrorReportSubmitter::class.java)
     }
 
     companion object {
-        private const val PLUGIN_ID = "br.dev.ddr.windowtabs"
+        private const val PLUGIN_ID: String = "br.dev.ddr.windowtabs"
     }
 }

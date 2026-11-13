@@ -6,7 +6,6 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.mockito.Mockito.times
@@ -15,12 +14,12 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.awt.Component
 import java.awt.Cursor
-import java.awt.Dimension
 import java.awt.Frame
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
+import javax.swing.JScrollPane
 import javax.swing.SwingUtilities
 
 class WindowTabsBarTest : WindowTabsTestCase() {
@@ -36,7 +35,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = WindowTabsBar(project)
 
         assertTrue(bar.isVisible)
-        assertEquals(listOf(project.name, "other"), bar.tabs().map { tab -> tab.title().text })
+        assertEquals(listOf(project.name, "other"), bar.tabs().map { tab: JPanel -> tab.title().text })
         assertEquals(project.basePath, bar.tabs()[0].toolTipText)
         assertEquals(other.basePath, bar.tabs()[1].toolTipText)
         assertEquals(1, WindowTabsBar(other).strip().selectedIndex)
@@ -71,7 +70,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
             AnimatedIcon.Default.INSTANCE,
             placeholder.components
                 .filterIsInstance<JBLabel>()
-                .first { label -> label.text.isNullOrEmpty() }
+                .first { label: JBLabel -> label.text.isNullOrEmpty() }
                 .icon,
         )
     }
@@ -208,7 +207,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = WindowTabsBar(project)
         bar.setSize(600, 30)
         bar.doLayout()
-        bar.tabs().forEach { tab ->
+        bar.tabs().forEach { tab: JPanel ->
             tab.setSize(200, 30)
             tab.doLayout()
         }
@@ -217,7 +216,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
 
         val image = BufferedImage(600, 30, BufferedImage.TYPE_INT_ARGB)
         val graphics = image.createGraphics()
-        bar.tabs().forEach { tab -> tab.paint(graphics.create()) }
+        bar.tabs().forEach { tab: JPanel -> tab.paint(graphics.create()) }
         graphics.dispose()
 
         assertEquals(
@@ -272,9 +271,9 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     }
 
     fun `test the wheel scrolls a crowded strip`() {
-        repeat(8) { number -> openAnotherProject("project$number") }
+        repeat(8) { number: Int -> openAnotherProject("project$number") }
         val bar = laidOut(WindowTabsBar(project))
-        val scrollPane = bar.getComponent(0) as JBScrollPane
+        val scrollPane = bar.getComponent(0) as JScrollPane
 
         val unit = MouseWheelEvent.WHEEL_UNIT_SCROLL
         scrollPane.dispatchEvent(
@@ -283,61 +282,66 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertTrue(scrollPane.viewport.viewPosition.x > 0)
     }
 
-    private fun WindowTabsBar.strip(): TabStrip = ((getComponent(0) as JBScrollPane).viewport.view as TabStrip)
+    private fun WindowTabsBar.strip(): TabStrip = ((getComponent(0) as JScrollPane).viewport.view as TabStrip)
 
-    private fun WindowTabsBar.tabs(): List<JPanel> = strip().components.map { component -> component as JPanel }
+    private fun WindowTabsBar.tabs(): List<JPanel> {
+        val components: Array<Component> = strip().components
+
+        return components.map { component: Component -> component as JPanel }
+    }
 
     private fun WindowTabsBar.plusButton(): JBLabel = getComponent(1) as JBLabel
 
     private fun JPanel.labels(): List<JBLabel> = components.filterIsInstance<JBLabel>()
 
-    private fun JPanel.title(): JBLabel = labels().first { label -> !label.text.isNullOrEmpty() }
+    private fun JPanel.title(): JBLabel = labels().first { label: JBLabel -> !label.text.isNullOrEmpty() }
 
     private fun drag(
         tab: JPanel,
-        fromX: Int,
-        toX: Int,
+        startPosition: Int,
+        endPosition: Int,
     ) {
-        val down = MouseEvent.BUTTON1_DOWN_MASK
-        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_PRESSED, 0, down, fromX, 5, 1, false, MouseEvent.BUTTON1))
-        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_DRAGGED, 0, down, toX, 5, 0, false, MouseEvent.BUTTON1))
-        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, toX, 5, 1, false, MouseEvent.BUTTON1))
+        val pressed: Int = MouseEvent.BUTTON1_DOWN_MASK
+        val button: Int = MouseEvent.BUTTON1
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_PRESSED, 0, pressed, startPosition, 5, 1, false, button))
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_DRAGGED, 0, pressed, endPosition, 5, 0, false, button))
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, endPosition, 5, 1, false, button))
     }
 
-    /** Lays the bar out by hand, as a headless test has no peer to do it; the strip takes its preferred width. */
+    /** Lays the bar out by hand, as a headless test has no peer to do it; the viewport sizes the strip itself. */
     private fun laidOut(bar: WindowTabsBar): WindowTabsBar {
-        val scrollPane = bar.getComponent(0) as JBScrollPane
+        val scrollPane = bar.getComponent(0) as JScrollPane
         bar.setSize(600, 30)
         bar.doLayout()
         scrollPane.doLayout()
-        bar.strip().size = Dimension(maxOf(scrollPane.viewport.width, bar.strip().preferredSize.width), 30)
+        scrollPane.viewport.doLayout()
         bar.strip().doLayout()
 
         return bar
     }
 
-    private fun JPanel.closeButton(): JBLabel = labels().first { label -> label.text.isNullOrEmpty() }
+    private fun JPanel.closeButton(): JBLabel = labels().first { label: JBLabel -> label.text.isNullOrEmpty() }
 
     private fun click(
         target: Component,
         button: Int,
     ) {
-        val mask = BUTTON_MASKS.getValue(button)
-        target.dispatchEvent(MouseEvent(target, MouseEvent.MOUSE_CLICKED, 0, mask, 1, 1, 1, false, button))
+        val buttonMask: Int = BUTTON_MASKS.getValue(button)
+        target.dispatchEvent(MouseEvent(target, MouseEvent.MOUSE_CLICKED, 0, buttonMask, 1, 1, 1, false, button))
     }
 
     private fun mouse(
         target: Component,
-        id: Int,
-        x: Int,
-        y: Int,
+        eventId: Int,
+        horizontalPosition: Int,
+        verticalPosition: Int,
     ) {
-        target.dispatchEvent(MouseEvent(target, id, 0, 0, x, y, 0, false))
+        target.dispatchEvent(MouseEvent(target, eventId, 0, 0, horizontalPosition, verticalPosition, 0, false))
         SwingUtilities.invokeLater { }
     }
 
     private companion object {
-        val BUTTON_MASKS =
+        val BUTTON_MASKS: Map<Int, Int> =
             mapOf(
                 MouseEvent.BUTTON1 to MouseEvent.BUTTON1_DOWN_MASK,
                 MouseEvent.BUTTON2 to MouseEvent.BUTTON2_DOWN_MASK,
