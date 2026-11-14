@@ -5,6 +5,8 @@ and versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
 ### Added
 
 - Alt+Shift+1…9 switch to the project in that tab; Next Project Tab and Previous Project Tab (Window | Project Tabs) walk the
@@ -33,5 +35,6 @@ and versions follow [Semantic Versioning](https://semver.org).
 - While the IDE reopens the last session, the projects still on their way show as dimmed tabs.
 - Exceptions and UI freezes attributed to the plugin can be reported to JetBrains Marketplace.
 
-[Unreleased]: https://gitlab.com/danie1net0/window-tabs/-/compare/v0.1.0...master
+[Unreleased]: https://gitlab.com/danie1net0/window-tabs/-/compare/v0.2.0...master
+[0.2.0]: https://gitlab.com/danie1net0/window-tabs/-/compare/v0.1.0...v0.2.0
 [0.1.0]: https://gitlab.com/danie1net0/window-tabs/-/tags/v0.1.0
