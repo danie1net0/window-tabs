@@ -3,6 +3,7 @@ package br.dev.ddr.windowtabs
 import com.intellij.util.ui.JBUI
 import java.awt.Component
 import java.awt.Dimension
+import java.awt.Graphics
 import java.awt.Point
 import java.awt.Rectangle
 import javax.swing.JPanel
@@ -11,8 +12,14 @@ import javax.swing.Scrollable
 import javax.swing.SwingConstants
 
 public class TabStrip :
-    JPanel(TabStripLayout { JBUI.scale(MINIMUM_TAB_WIDTH) }),
+    JPanel(),
     Scrollable {
+    private var drag: TabDrag? = null
+    private val stripLayout = TabStripLayout({ JBUI.scale(MINIMUM_TAB_WIDTH) }, { drag })
+
+    public val draggedTab: Component?
+        get() = drag?.tab
+
     public var selectedIndex: Int? = null
         set(value) {
             field = value
@@ -27,6 +34,7 @@ public class TabStrip :
 
     init {
         isOpaque = false
+        layout = stripLayout
     }
 
     override fun doLayout() {
@@ -46,14 +54,45 @@ public class TabStrip :
         scrollRectToVisible(getComponent(index).bounds)
     }
 
-    public fun indexAt(horizontalPosition: Int): Int {
-        val index: Int = components.indexOfFirst { tab: Component -> horizontalPosition < tab.x + tab.width }
+    /** Draws [tab] with its left edge at [left] while the other tabs slide aside to open its drop slot. */
+    public fun dragTo(
+        tab: Component,
+        left: Int,
+    ) {
+        drag = TabDrag(tab, left)
 
-        if (index < 0) {
-            return componentCount - 1
-        }
+        revalidate()
+        repaint()
+    }
+
+    /** Moves the dragged tab into its slot right away, so it does not jump back before the strips rebuild. */
+    public fun drop(): Int? {
+        val current: TabDrag = drag ?: return null
+        val index: Int = stripLayout.dropIndex(this, current)
+        drag = null
+
+        remove(current.tab)
+        add(current.tab, index)
+        revalidate()
+        repaint()
 
         return index
+    }
+
+    override fun removeAll() {
+        drag = null
+
+        super.removeAll()
+    }
+
+    /** Paints the dragged tab again on top: Swing paints children in reverse order, so a neighbour would cover it. */
+    override fun paintChildren(graphics: Graphics) {
+        super.paintChildren(graphics)
+
+        val tab: Component = draggedTab ?: return
+        val tabGraphics: Graphics = graphics.create(tab.x, tab.y, tab.width, tab.height)
+        tab.paint(tabGraphics)
+        tabGraphics.dispose()
     }
 
     override fun getPreferredScrollableViewportSize(): Dimension = preferredSize

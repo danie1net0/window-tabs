@@ -8,8 +8,11 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 
 class TabStripLayoutTest {
+    private var drag: TabDrag? = null
+    private val layout = TabStripLayout({ 100 }, { drag })
+
     private fun strip(tabCount: Int): JPanel {
-        val panel = JPanel(TabStripLayout { 100 })
+        val panel = JPanel(layout)
         repeat(tabCount) { number: Int ->
             val label = JLabel("tab")
             label.preferredSize = Dimension(50, HEIGHTS[number % HEIGHTS.size])
@@ -58,8 +61,48 @@ class TabStripLayoutTest {
     }
 
     @Test
+    fun `the dragged tab follows the mouse while the others open its drop slot`() {
+        val panel = strip(3)
+        panel.setSize(300, 30)
+        drag = TabDrag(panel.getComponent(0), 110)
+
+        panel.doLayout()
+
+        assertEquals(Rectangle(110, 0, 100, 30), panel.getComponent(0).bounds)
+        assertEquals(Rectangle(0, 0, 100, 30), panel.getComponent(1).bounds)
+        assertEquals(Rectangle(200, 0, 100, 30), panel.getComponent(2).bounds)
+        assertEquals(1, layout.dropIndex(panel, TabDrag(panel.getComponent(0), 110)))
+    }
+
+    @Test
+    fun `the dragged tab stays within the strip`() {
+        val panel = strip(3)
+        panel.setSize(300, 30)
+
+        drag = TabDrag(panel.getComponent(1), -80)
+        panel.doLayout()
+        assertEquals(Rectangle(0, 0, 100, 30), panel.getComponent(1).bounds)
+        assertEquals(0, layout.dropIndex(panel, TabDrag(panel.getComponent(1), -80)))
+
+        drag = TabDrag(panel.getComponent(1), 900)
+        panel.doLayout()
+        assertEquals(Rectangle(200, 0, 100, 30), panel.getComponent(1).bounds)
+        assertEquals(2, layout.dropIndex(panel, TabDrag(panel.getComponent(1), 900)))
+    }
+
+    @Test
+    fun `needs no drag source by default`() {
+        val panel = JPanel(TabStripLayout({ 100 }))
+        panel.add(JLabel("tab"))
+        panel.setSize(300, 30)
+
+        panel.doLayout()
+
+        assertEquals(Rectangle(0, 0, 300, 30), panel.getComponent(0).bounds)
+    }
+
+    @Test
     fun `ignores the names components are added with`() {
-        val layout = TabStripLayout { 100 }
         val label = JLabel()
 
         layout.addLayoutComponent("name", label)
