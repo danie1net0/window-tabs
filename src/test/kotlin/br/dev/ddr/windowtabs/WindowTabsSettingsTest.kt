@@ -17,8 +17,8 @@ class WindowTabsSettingsTest : WindowTabsTestCase() {
     fun `test a dragged order is saved for the next start`() {
         val other = openAnotherProject("other")
 
-        WindowTabsService.getInstance().move(other.basePath!!, 0)
+        WindowTabsService.getInstance().move(keyOf(other), 0)
 
-        assertEquals(listOf(other.basePath, project.basePath), WindowTabsSettings.getInstance().state.tabOrder)
+        assertEquals(listOf(keyOf(other), keyOf(project)), WindowTabsSettings.getInstance().state.tabOrder)
     }
 }

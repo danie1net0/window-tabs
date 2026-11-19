@@ -9,6 +9,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.awt.Frame
+import java.awt.GraphicsDevice
 import java.awt.Rectangle
 import java.nio.file.Files
 
@@ -47,7 +48,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
 
         val tabs = service.tabs(project)
 
-        assertEquals(listOf(project.basePath, "/work/b", "/work/c"), tabs.map { tab: WindowTab -> tab.key })
+        assertEquals(listOf(keyOf(project), "/work/b", "/work/c"), tabs.map { tab: WindowTab -> tab.key })
         assertInstanceOf(tabs[1], WindowTab.Reopening::class.java)
     }
 
@@ -61,13 +62,13 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         val late = PlatformTestUtil.loadAndOpenProject(directory, testRootDisposable)
         val tabs = service.tabs(project)
 
-        assertEquals(listOf(project.basePath, late.basePath, "/work/last"), tabs.map { tab: WindowTab -> tab.key })
+        assertEquals(listOf(keyOf(project), keyOf(late), "/work/last"), tabs.map { tab: WindowTab -> tab.key })
         assertSame(late, (tabs[1] as WindowTab.Open).project)
     }
 
     fun `test the window's own project counts as open before ProjectManager lists it`() {
         val gone = closedProject()
-        service.expectReopening(listOf(WindowTab.Reopening(gone.basePath!!, "closed")))
+        service.expectReopening(listOf(WindowTab.Reopening(keyOf(gone), "closed")))
 
         val tabs = service.tabs(gone)
 
@@ -134,6 +135,35 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         verify(destination).extendedState = Frame.MAXIMIZED_BOTH
     }
 
+    fun `test switching leaves a target maximized on the same screen alone`() {
+        val target = openAnotherProject("target")
+        val windowManager = fakeWindowManager()
+        val source = fakeFrame(Frame.MAXIMIZED_BOTH)
+        val destination = fakeFrame(Frame.MAXIMIZED_BOTH)
+        `when`(windowManager.getFrame(project)).thenReturn(source)
+        `when`(windowManager.getFrame(target)).thenReturn(destination)
+
+        service.switchTo(project, target)
+
+        verify(destination, never()).bounds = any()
+        verify(destination, never()).extendedState = anyInt()
+        assertEquals(listOf(target), focused)
+    }
+
+    fun `test switching moves a target maximized on another screen`() {
+        val target = openAnotherProject("target")
+        val windowManager = fakeWindowManager()
+        val source = fakeFrame(Frame.MAXIMIZED_BOTH, Rectangle(1920, 0, 2560, 1440))
+        val destination = fakeFrame(Frame.MAXIMIZED_BOTH, Rectangle(0, 0, 800, 600), mock(GraphicsDevice::class.java))
+        `when`(windowManager.getFrame(project)).thenReturn(source)
+        `when`(windowManager.getFrame(target)).thenReturn(destination)
+
+        service.switchTo(project, target)
+
+        verify(destination).bounds = Rectangle(2800, 420, 800, 600)
+        verify(destination).extendedState = Frame.MAXIMIZED_BOTH
+    }
+
     fun `test switching without the current frame leaves the target where it is`() {
         val target = openAnotherProject("target")
         val windowManager = fakeWindowManager()
@@ -169,7 +199,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         val second = openAnotherProject("second")
         val calls = recordTabsChanged()
 
-        service.move(second.basePath!!, 0)
+        service.move(keyOf(second), 0)
         dispatchEvents()
 
         assertEquals(listOf(second, project), openProjects())

@@ -12,12 +12,16 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.withSettings
 import java.awt.Frame
+import java.awt.GraphicsConfiguration
+import java.awt.GraphicsDevice
 import java.awt.Rectangle
 import java.nio.file.Files
 import javax.swing.JFrame
 
 /** Real projects, so the tests see what ProjectManager really reports, plus a fake WindowManager for the frames. */
 abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
+    protected val mainScreen: GraphicsDevice = mock(GraphicsDevice::class.java)
+
     /** Projects whose window the code under test asked to raise, once [fakeWindowManager] is in place. */
     protected val focused = mutableListOf<Project>()
 
@@ -36,6 +40,9 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
             .tabs(current)
             .filterIsInstance<WindowTab.Open>()
             .map { tab: WindowTab.Open -> tab.project }
+
+    /** The key the strip files [project] under, which for the test framework's own project is its .ipr file. */
+    protected fun keyOf(project: Project): String = WindowTab.Open(project).key
 
     protected fun openAnotherProject(name: String): Project {
         val directory = Files.createTempDirectory(name)
@@ -58,8 +65,12 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
     protected fun fakeFrame(
         state: Int = Frame.NORMAL,
         bounds: Rectangle = Rectangle(0, 0, 800, 600),
+        screen: GraphicsDevice = mainScreen,
     ): JFrame {
         val frame = mock(JFrame::class.java, withSettings().extraInterfaces(IdeFrame::class.java))
+        val configuration = mock(GraphicsConfiguration::class.java)
+        `when`(configuration.device).thenReturn(screen)
+        `when`(frame.graphicsConfiguration).thenReturn(configuration)
         `when`(frame.extendedState).thenReturn(state)
         `when`(frame.bounds).thenReturn(bounds)
         `when`(frame.size).thenReturn(bounds.size)

@@ -87,6 +87,20 @@ class TabOrderTest {
     }
 
     @Test
+    fun `forgets the longest-closed projects past the limit`() {
+        val closed: List<String> = (1..TabOrder.MAX_REMEMBERED).map { number: Int -> "closed$number" }
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(closed) { keys: List<String> -> reported.add(keys) }
+
+        assertEquals(listOf("a", "b"), order.sync(listOf("a", "b")))
+
+        val kept: List<String> = reported.single()
+        assertEquals(TabOrder.MAX_REMEMBERED, kept.size)
+        assertEquals(listOf("closed3", "closed4"), kept.take(2))
+        assertEquals(listOf("a", "b"), kept.takeLast(2))
+    }
+
+    @Test
     fun `reports nothing when the order stays the same`() {
         val reported = mutableListOf<List<String>>()
         val order = TabOrder(listOf("a", "b")) { keys: List<String> -> reported.add(keys) }

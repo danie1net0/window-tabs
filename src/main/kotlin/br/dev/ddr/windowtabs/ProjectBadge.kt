@@ -1,7 +1,6 @@
 package br.dev.ddr.windowtabs
 
 import com.intellij.ui.DeferredIcon
-import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBUI
 import java.awt.Color
 import java.awt.Component
@@ -13,6 +12,7 @@ import java.awt.font.GlyphVector
 import java.awt.geom.Rectangle2D
 import java.awt.geom.RoundRectangle2D
 import java.awt.image.BufferedImage
+import java.util.concurrent.ConcurrentHashMap
 import javax.swing.Icon
 
 /**
@@ -61,29 +61,23 @@ public class ProjectBadge(
     }
 
     public companion object {
-        private const val OPAQUE: Int = 255
         private const val ARC_RATIO: Float = 0.45f
         private const val FONT_RATIO: Float = 0.5f
         private const val MAX_INITIALS: Int = 2
 
+        private val colors: MutableMap<String, Color> = ConcurrentHashMap()
+
+        /** Stands in when the IDE's icon cannot be read, so one bad project icon does not break the strip. */
+        public val FALLBACK_COLOR: Color = Color.GRAY
+
         /**
-         * A badge in the colour of the IDE's generated [ideIcon]. A project's own icon (.idea/icon.svg) has no solid
-         * fill to read, so it shows as drawn.
+         * The colour of the IDE's generated icon for the project at [key], worked out once: computing that icon
+         * touches the disk, and every strip asks again on each refresh.
          */
-        public fun forProject(
-            name: String,
-            ideIcon: Icon,
-            size: Int,
-            drop: Int,
-        ): Icon {
-            val color: Color = colorOf(ideIcon)
-
-            if (color.alpha < OPAQUE) {
-                return IconUtil.toSize(ideIcon, size, size)
-            }
-
-            return ProjectBadge(initialsOf(name), color, size, drop)
-        }
+        public fun colorFor(
+            key: String,
+            ideIcon: () -> Icon,
+        ): Color = colors.getOrPut(key) { runCatching { colorOf(ideIcon()) }.getOrDefault(FALLBACK_COLOR) }
 
         /** The first letter of each of the first two words, as the IDE's own project icons show them. */
         public fun initialsOf(name: String): String =

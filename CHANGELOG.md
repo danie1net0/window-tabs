@@ -13,8 +13,14 @@ and versions follow [Semantic Versioning](https://semver.org).
 - A short click that moves the mouse a few pixels still switches tabs; only the left button drags.
 - The strip keeps where it was scrolled to when it refreshes, and waits for a drag to end before refreshing.
 - No dimmed tabs for the last session when the IDE starts with another project instead of reopening it.
-- The badge colour no longer depends on whether the IDE had already drawn the project icon, and a project's own
-  icon shows as drawn.
+- The badge colour no longer depends on whether the IDE had already drawn the project icon, is worked out once per
+  project, and a broken project icon no longer empties the strip. A project's own icon shows as drawn, at the tab's size.
+- A drag whose release never arrives, as when a dialog opens mid-drag, is called off by the next press instead of
+  freezing the strip.
+- Switching between two maximized windows on the same monitor keeps the target's restore size.
+- The close and plus buttons react to the left button only, and to a click that moves a few pixels.
+- Projects kept in an .ipr file match their last-session entry, so they no longer show twice while the IDE reopens.
+- The saved tab order keeps at most 100 projects.
 
 ## [0.2.0] - 2026-11-19
 

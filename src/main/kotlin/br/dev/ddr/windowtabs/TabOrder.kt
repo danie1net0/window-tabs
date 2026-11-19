@@ -16,6 +16,8 @@ public class TabOrder(
         openKeys.filterNot { key: String -> key in keys }.forEach { key: String -> keys.add(key) }
 
         val open: Set<String> = openKeys.toSet()
+        val surplus: Int = (keys.size - MAX_REMEMBERED).coerceAtLeast(0)
+        keys.removeAll(keys.filterNot { key: String -> key in open }.take(surplus).toSet())
         visible = keys.filter { key: String -> key in open }
 
         report(before)
@@ -43,6 +45,11 @@ public class TabOrder(
         visible = others.take(target) + key + others.drop(target)
 
         report(before)
+    }
+
+    public companion object {
+        /** Past this many, the longest-closed projects make room, so the saved order does not grow forever. */
+        public const val MAX_REMEMBERED: Int = 100
     }
 
     private fun report(before: List<String>) {

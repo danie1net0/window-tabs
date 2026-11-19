@@ -141,6 +141,46 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertTrue(other.isDisposed)
     }
 
+    fun `test right-clicking the close button keeps the project open`() {
+        val other = openAnotherProject("other")
+        val bar = WindowTabsBar(project)
+
+        click(bar.tabs()[1].closeButton(), MouseEvent.BUTTON3)
+        dispatchEvents()
+
+        assertFalse(other.isDisposed)
+    }
+
+    fun `test a press after a drag whose release never came calls the drag off`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        press(first, 10)
+        move(first, first.width / 2)
+
+        press(bar.tabs()[1], 10)
+
+        assertNull(bar.strip().draggedTab)
+        assertNotSame(first, bar.tabs()[0])
+        assertEquals(listOf(project, second), openProjects())
+    }
+
+    fun `test letting go over a tab the strip has since replaced does nothing`() {
+        val other = openAnotherProject("other")
+        val windowManager = fakeWindowManager()
+        val bar = laidOut(WindowTabsBar(project))
+        val stale = bar.tabs()[1]
+        press(bar.tabs()[0], 10)
+        move(bar.tabs()[0], bar.tabs()[0].width / 2)
+        press(stale, 10)
+
+        release(stale, MouseEvent.BUTTON1)
+        dispatchEvents()
+
+        verifyNoInteractions(windowManager)
+        assertFalse(other.isDisposed)
+    }
+
     fun `test dragging with another button reorders nothing`() {
         val second = openAnotherProject("second")
         val bar = laidOut(WindowTabsBar(project))
@@ -344,7 +384,8 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         bar.strip().doLayout()
         assertEquals(first.width / 2 - 8, first.x)
 
-        drag(first, 10, first.width + 10)
+        move(first, first.width + 10)
+        release(first, MouseEvent.BUTTON1, first.width + 10)
 
         assertEquals(listOf(second, project), openProjects())
         assertSame(first, bar.strip().getComponent(1))
@@ -442,12 +483,13 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         tab.dispatchEvent(event)
     }
 
+    /** Presses and lets go over [target], which gets a size first: a headless test lays nothing out. */
     private fun click(
         target: Component,
         button: Int,
     ) {
-        val buttonMask: Int = BUTTON_MASKS.getValue(button)
-        target.dispatchEvent(MouseEvent(target, MouseEvent.MOUSE_CLICKED, 0, buttonMask, 1, 1, 1, false, button))
+        target.setSize(20, 20)
+        target.dispatchEvent(MouseEvent(target, MouseEvent.MOUSE_RELEASED, 0, 0, 1, 1, 1, false, button))
     }
 
     private fun mouse(
@@ -458,14 +500,5 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     ) {
         target.dispatchEvent(MouseEvent(target, eventId, 0, 0, horizontalPosition, verticalPosition, 0, false))
         SwingUtilities.invokeLater { }
-    }
-
-    private companion object {
-        val BUTTON_MASKS: Map<Int, Int> =
-            mapOf(
-                MouseEvent.BUTTON1 to MouseEvent.BUTTON1_DOWN_MASK,
-                MouseEvent.BUTTON2 to MouseEvent.BUTTON2_DOWN_MASK,
-                MouseEvent.BUTTON3 to MouseEvent.BUTTON3_DOWN_MASK,
-            )
     }
 }

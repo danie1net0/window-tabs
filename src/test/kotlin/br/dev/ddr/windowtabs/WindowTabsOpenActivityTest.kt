@@ -30,7 +30,7 @@ class WindowTabsOpenActivityTest : WindowTabsTestCase() {
     }
 
     fun `test the reopen ends once no project has opened for a while`() {
-        val own = WindowTab.Reopening(project.basePath!!, "own")
+        val own = WindowTab.Reopening(keyOf(project), "own")
         val waiting = listOf(own, WindowTab.Reopening("/work/missing", "missing"))
         WindowTabsService.getInstance().expectReopening(waiting)
 

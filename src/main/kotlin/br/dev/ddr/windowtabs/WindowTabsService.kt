@@ -137,8 +137,15 @@ public class WindowTabsService {
             return
         }
 
-        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds, destination.size)
+        val sameScreen: Boolean = source.graphicsConfiguration.device == destination.graphicsConfiguration.device
+
+        // Already maximized where it belongs: setting its bounds would overwrite the size it restores to.
+        if (FramePlacement.alreadyInPlace(source.extendedState, destination.extendedState, sameScreen)) {
+            return
+        }
+
         destination.extendedState = Frame.NORMAL
+        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds, destination.size)
         destination.bounds = placement.bounds
         destination.extendedState = placement.extendedState
     }

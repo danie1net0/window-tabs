@@ -65,7 +65,8 @@ class TabStripTest {
 
         assertSame(first, strip.draggedTab)
         assertEquals(minimumWidth + 10, first.x)
-        assertEquals(1, strip.drop())
+        assertNull(strip.drop(strip.getComponent(2)))
+        assertEquals(1, strip.drop(first))
         assertNull(strip.draggedTab)
         assertSame(first, strip.getComponent(1))
     }
@@ -74,7 +75,7 @@ class TabStripTest {
     fun `dropping without a drag moves nothing`() {
         val strip = strip(2)
 
-        assertNull(strip.drop())
+        assertNull(strip.drop(strip.getComponent(0)))
         assertEquals("tab 0", (strip.getComponent(0) as JLabel).text)
     }
 
@@ -88,7 +89,7 @@ class TabStripTest {
         strip.dragTo(stale, 10)
 
         assertNull(strip.draggedTab)
-        assertNull(strip.drop())
+        assertNull(strip.drop(stale))
         assertEquals(1, strip.componentCount)
     }
 

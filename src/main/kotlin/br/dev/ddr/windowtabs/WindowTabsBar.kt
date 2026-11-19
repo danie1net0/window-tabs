@@ -129,17 +129,15 @@ public class WindowTabsBar(
         button.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
 
         button.addMouseListener(
-            object : MouseAdapter() {
-                override fun mouseClicked(event: MouseEvent) {
-                    val actionManager: ActionManager = ActionManager.getInstance()
-                    val openProject: AnAction? = actionManager.getAction(OPEN_PROJECT_ACTION)
+            LeftClick { event: MouseEvent ->
+                val actionManager: ActionManager = ActionManager.getInstance()
+                val openProject: AnAction? = actionManager.getAction(OPEN_PROJECT_ACTION)
 
-                    if (openProject == null) {
-                        return
-                    }
-
-                    actionManager.tryToExecute(openProject, event, button, ActionPlaces.TOOLBAR, true)
+                if (openProject == null) {
+                    return@LeftClick
                 }
+
+                actionManager.tryToExecute(openProject, event, button, ActionPlaces.TOOLBAR, true)
             },
         )
 
@@ -186,12 +184,9 @@ public class WindowTabsBar(
                         closeButton.icon = AllIcons.Actions.Close
                         updateHover(event)
                     }
-
-                    override fun mouseClicked(event: MouseEvent) {
-                        WindowTabsService.getInstance().close(target)
-                    }
                 },
             )
+            closeButton.addMouseListener(LeftClick { WindowTabsService.getInstance().close(target) })
             add(closeButton, BorderLayout.WEST)
             add(balance, BorderLayout.EAST)
 
@@ -201,13 +196,7 @@ public class WindowTabsBar(
 
                     override fun mouseExited(event: MouseEvent): Unit = updateHover(event)
 
-                    override fun mousePressed(event: MouseEvent) {
-                        if (!SwingUtilities.isLeftMouseButton(event)) {
-                            return
-                        }
-
-                        grabX = event.x
-                    }
+                    override fun mousePressed(event: MouseEvent): Unit = press(event)
 
                     override fun mouseDragged(event: MouseEvent): Unit = drag(event)
 
@@ -222,9 +211,40 @@ public class WindowTabsBar(
                 return null
             }
 
-            val icon: Icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
+            return badgeOrOwnIcon()
+        }
 
-            return ProjectBadge.forProject(target.name, icon, JBUI.scale(ICON_SIZE), JBUI.scale(ICON_DROP))
+        private fun badgeOrOwnIcon(): Icon {
+            val manager: RecentProjectsManagerBase = RecentProjectsManagerBase.getInstanceEx()
+            val size: Int = JBUI.scale(ICON_SIZE)
+
+            // A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT.
+            if (manager.hasCustomIcon(target)) {
+                return manager.getProjectIcon(tab.key, true, size, target.name)
+            }
+
+            val color: Color = ProjectBadge.colorFor(tab.key) { manager.getProjectIcon(tab.key, true) }
+
+            return ProjectBadge(ProjectBadge.initialsOf(target.name), color, size, JBUI.scale(ICON_DROP))
+        }
+
+        /**
+         * A press while another drag is still on means its release never came, as when a dialog took the mouse:
+         * that drag is called off and the strip catches up on what it skipped.
+         */
+        private fun press(event: MouseEvent) {
+            if (tabs.draggedTab != null) {
+                tabs.removeAll()
+                rebuild()
+
+                return
+            }
+
+            if (!SwingUtilities.isLeftMouseButton(event)) {
+                return
+            }
+
+            grabX = event.x
         }
 
         /** A press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
@@ -246,7 +266,7 @@ public class WindowTabsBar(
          */
         private fun release(event: MouseEvent) {
             grabX = null
-            val index: Int? = tabs.drop()
+            val index: Int? = tabs.drop(this)
 
             if (index != null) {
                 WindowTabsService.getInstance().move(tab.key, index)
@@ -254,7 +274,8 @@ public class WindowTabsBar(
                 return
             }
 
-            if (!contains(event.point)) {
+            // A tab the strip replaced while the button was down no longer stands for what the user pressed.
+            if (parent !== tabs || !contains(event.point)) {
                 return
             }
 

@@ -74,9 +74,12 @@ public class TabStrip :
         repaint()
     }
 
-    /** Moves the dragged tab into its slot right away, so it does not jump back before the strips rebuild. */
-    public fun drop(): Int? {
-        val current: TabDrag = drag ?: return null
+    /**
+     * Moves [tab] into its slot right away, so it does not jump back before the strips rebuild.
+     * Nothing happens unless [tab] is the one being dragged.
+     */
+    public fun drop(tab: Component): Int? {
+        val current: TabDrag = drag?.takeIf { dragged: TabDrag -> dragged.tab === tab } ?: return null
         val index: Int = stripLayout.dropIndex(this, current)
         drag = null
 

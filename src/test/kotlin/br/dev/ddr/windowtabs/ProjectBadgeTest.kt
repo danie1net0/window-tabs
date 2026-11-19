@@ -117,6 +117,20 @@ class ProjectBadgeTest {
     }
 
     @Test
+    fun `works out a project's colour once and survives an icon that fails`() {
+        var reads = 0
+        val icon = {
+            reads++
+            halves(Color(100, 0, 200))
+        }
+
+        assertEquals(Color(100, 0, 200), ProjectBadge.colorFor("/work/once", icon))
+        assertEquals(Color(100, 0, 200), ProjectBadge.colorFor("/work/once", icon))
+        assertEquals(1, reads)
+        assertEquals(ProjectBadge.FALLBACK_COLOR, ProjectBadge.colorFor("/work/broken") { error("unreadable icon") })
+    }
+
+    @Test
     fun `averages a gradient and stays clear where either edge is`() {
         assertEquals(Color(150, 50, 100), ProjectBadge.colorOf(halves(Color(200, 100, 0))))
         assertEquals(0, ProjectBadge.colorOf(halves(Color(0, 0, 0, 0))).alpha)

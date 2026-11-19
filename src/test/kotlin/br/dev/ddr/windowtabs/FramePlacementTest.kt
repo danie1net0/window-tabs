@@ -25,6 +25,16 @@ class FramePlacementTest {
     }
 
     @Test
+    fun `a target already maximized on the source's screen stays as it is`() {
+        val maximized: Int = Frame.MAXIMIZED_BOTH
+
+        assertEquals(true, FramePlacement.alreadyInPlace(maximized, maximized, true))
+        assertEquals(false, FramePlacement.alreadyInPlace(maximized, maximized, false))
+        assertEquals(false, FramePlacement.alreadyInPlace(maximized, Frame.NORMAL, true))
+        assertEquals(false, FramePlacement.alreadyInPlace(Frame.NORMAL, maximized, true))
+    }
+
+    @Test
     fun `half maximized source is treated as a normal window`() {
         val placement =
             FramePlacement.matching(Frame.MAXIMIZED_HORIZ, Rectangle(0, 10, 1920, 700), Dimension(800, 600))

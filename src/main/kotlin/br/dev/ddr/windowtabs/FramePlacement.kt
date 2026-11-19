@@ -9,6 +9,14 @@ public data class FramePlacement(
     val bounds: Rectangle,
 ) {
     public companion object {
+        public fun alreadyInPlace(
+            sourceState: Int,
+            targetState: Int,
+            sameScreen: Boolean,
+        ): Boolean = maximized(sourceState) && maximized(targetState) && sameScreen
+
+        private fun maximized(state: Int): Boolean = state and Frame.MAXIMIZED_BOTH == Frame.MAXIMIZED_BOTH
+
         /**
          * A maximized source keeps the target maximized, but on the source's screen: the target first moves there at
          * its own [targetSize], or it would maximize on whatever monitor it happened to be on.
@@ -18,7 +26,7 @@ public data class FramePlacement(
             sourceBounds: Rectangle,
             targetSize: Dimension,
         ): FramePlacement {
-            if (sourceState and Frame.MAXIMIZED_BOTH == Frame.MAXIMIZED_BOTH) {
+            if (maximized(sourceState)) {
                 val width: Int = minOf(targetSize.width, sourceBounds.width)
                 val height: Int = minOf(targetSize.height, sourceBounds.height)
                 val left: Int = sourceBounds.x + (sourceBounds.width - width) / 2
