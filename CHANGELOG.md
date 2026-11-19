@@ -5,30 +5,25 @@ and versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
-### Changed
-
-- A dragged tab follows the mouse while the other tabs slide aside to show where it will land.
-- The tabs look like macOS window tabs: the selected one merges with the toolbar, the others sit recessed behind it
-  under a soft shadow, and the titles stay centered when the close button appears.
-- The project icon is a rounded badge in the project's colour with its initials centred, instead of the IDE's
-  generated icon, which is not square on every platform and crowds its letters.
-
-## [0.2.0] - 2026-11-13
+## [0.2.0] - 2026-11-19
 
 ### Added
 
 - Alt+Shift+1…9 switch to the project in that tab; Next Project Tab and Previous Project Tab (Window | Project Tabs) walk the
   strip and can get a shortcut in the keymap.
-- Tabs can be dragged into a new order, and the order is kept for the next start.
+- Tabs can be dragged into a new order: the dragged tab follows the mouse while the others slide aside, and the order
+  is kept for the next start.
 - When the tabs do not fit, they keep a readable width and the strip scrolls with the mouse wheel, always showing the
   current project's tab.
-- Each tab shows the project's icon, the same one the Welcome screen uses.
+- Each tab shows a rounded badge with the project's initials, in the colour of its Welcome screen icon.
 - Settings | Appearance & Behavior | Window Tabs: show the strip with a single project, hide the project icons, show
   the strip on macOS.
 
 ### Changed
 
 - Works in every JetBrains IDE from 2024.3 on, Android Studio included (was 2026.1).
+- The tabs look like macOS window tabs: the selected one merges with the toolbar, the others sit recessed behind it
+  under a soft shadow, and the titles stay centered when the close button appears.
 - The strip stays off on macOS by default, where the IDE can already merge project windows into native tabs.
 - The dimmed tabs of the last session go away once no project has opened for 30 seconds, since older IDEs do not
   report the end of the reopen.
