@@ -10,19 +10,23 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.AnimatedIcon
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
-import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Component
 import java.awt.Cursor
+import java.awt.GradientPaint
 import java.awt.Graphics
+import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
+import javax.swing.Box
 import javax.swing.Icon
 import javax.swing.JPanel
 import javax.swing.JScrollPane
@@ -39,7 +43,7 @@ public class WindowTabsBar(
 
     init {
         isOpaque = true
-        border = JBUI.Borders.customLineBottom(JBColor.border())
+        border = JBUI.Borders.customLineBottom(EDGE)
 
         add(scrollPane(), BorderLayout.CENTER)
         add(newProjectButton(), BorderLayout.EAST)
@@ -68,7 +72,14 @@ public class WindowTabsBar(
         super.removeNotify()
     }
 
-    override fun getBackground(): Color = JBUI.CurrentTheme.EditorTabs.background()
+    override fun getBackground(): Color = recessedBackground()
+
+    /** The line under the toolbar; the selected tab paints over it to merge with the toolbar. */
+    override fun paintComponent(graphics: Graphics) {
+        super.paintComponent(graphics)
+
+        paintTopEdge(graphics)
+    }
 
     private fun scrollPane(): JScrollPane {
         val scrollPane =
@@ -140,9 +151,9 @@ public class WindowTabsBar(
     ) : JPanel(BorderLayout()) {
         private val target: Project = tab.project
         private var hovered = false
-        private var dragStartX: Int? = null
-        private var dragging = false
+        private var grabX: Int? = null
         private val closeButton = JBLabel(AllIcons.Actions.Close)
+        private val balance: Component = Box.createRigidArea(closeButton.preferredSize)
 
         init {
             isOpaque = false
@@ -151,10 +162,10 @@ public class WindowTabsBar(
 
             val title = JBLabel(target.name, projectIcon(), SwingConstants.CENTER)
             title.font = JBUI.Fonts.label().asPlain()
+            title.iconTextGap = JBUI.scale(ICON_GAP)
             title.foreground = UIUtil.getContextHelpForeground()
 
             if (selected) {
-                title.font = JBUI.Fonts.label().asBold()
                 title.foreground = UIUtil.getLabelForeground()
             }
 
@@ -162,6 +173,7 @@ public class WindowTabsBar(
 
             closeButton.toolTipText = "Close project"
             closeButton.isVisible = false
+            balance.isVisible = false
 
             closeButton.addMouseListener(
                 object : MouseAdapter() {
@@ -180,6 +192,7 @@ public class WindowTabsBar(
                 },
             )
             add(closeButton, BorderLayout.WEST)
+            add(balance, BorderLayout.EAST)
 
             val mouseHandler =
                 object : MouseAdapter() {
@@ -202,13 +215,12 @@ public class WindowTabsBar(
                     }
 
                     override fun mousePressed(event: MouseEvent) {
-                        dragStartX = event.x
-                        dragging = false
+                        grabX = event.x
                     }
 
                     override fun mouseDragged(event: MouseEvent): Unit = drag(event)
 
-                    override fun mouseReleased(event: MouseEvent): Unit = drop(event)
+                    override fun mouseReleased(event: MouseEvent): Unit = drop()
                 }
             addMouseListener(mouseHandler)
             addMouseMotionListener(mouseHandler)
@@ -221,39 +233,36 @@ public class WindowTabsBar(
 
             val icon: Icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
 
-            return IconUtil.toSize(icon, JBUI.scale(ICON_SIZE), JBUI.scale(ICON_SIZE))
+            val initials: String = ProjectBadge.initialsOf(target.name)
+
+            return ProjectBadge(initials, ProjectBadge.colorOf(icon), JBUI.scale(ICON_SIZE), JBUI.scale(ICON_DROP))
         }
 
-        /** A press that moves far enough sideways becomes a drag; until then it may still be a click. */
+        /** A press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
         private fun drag(event: MouseEvent) {
-            val start: Int? = dragStartX
+            val grab: Int = grabX ?: return
+            val started: Boolean = tabs.draggedTab === this
 
-            if (start == null || abs(event.x - start) < JBUI.scale(DRAG_THRESHOLD)) {
-                return
-            }
-
-            dragging = true
-            cursor = Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
-        }
-
-        private fun drop(event: MouseEvent) {
-            val wasDragging: Boolean = dragging
-            dragStartX = null
-            dragging = false
-            cursor = Cursor.getDefaultCursor()
-
-            if (!wasDragging) {
+            if (!started && abs(event.x - grab) < JBUI.scale(DRAG_THRESHOLD)) {
                 return
             }
 
             val point: Point = SwingUtilities.convertPoint(this, event.point, tabs)
-            WindowTabsService.getInstance().move(tab.key, tabs.indexAt(point.x))
+            tabs.dragTo(this, point.x - grab)
+        }
+
+        private fun drop() {
+            grabX = null
+            val index: Int = tabs.drop() ?: return
+
+            WindowTabsService.getInstance().move(tab.key, index)
         }
 
         private fun updateHover(event: MouseEvent) {
             val point: Point = SwingUtilities.convertPoint(event.component, event.point, this)
             hovered = contains(point)
             closeButton.isVisible = hovered
+            balance.isVisible = hovered
 
             repaint()
         }
@@ -261,22 +270,22 @@ public class WindowTabsBar(
         override fun paintComponent(graphics: Graphics) {
             super.paintComponent(graphics)
 
-            if (hovered) {
-                graphics.color = JBUI.CurrentTheme.EditorTabs.hoverBackground()
-                graphics.fillRect(0, 0, width, height)
-            }
+            graphics.color = background
+            graphics.fillRect(0, 0, width, height)
 
-            if (selected) {
-                graphics.color = JBUI.CurrentTheme.EditorTabs.underlinedTabBackground()
-                graphics.fillRect(0, 0, width, height)
-
-                graphics.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
-                val thickness: Int = JBUI.scale(2)
-                graphics.fillRect(0, height - thickness, width, thickness)
+            if (!selected) {
+                paintTopEdge(graphics)
             }
 
             paintSeparator(graphics)
         }
+
+        override fun getBackground(): Color =
+            when {
+                selected -> selectedBackground()
+                hovered -> hoveredBackground()
+                else -> recessedBackground()
+            }
     }
 
     private class Placeholder(
@@ -291,13 +300,18 @@ public class WindowTabsBar(
             title.font = JBUI.Fonts.label().asPlain()
             title.foreground = UIUtil.getLabelDisabledForeground()
 
+            val spinner = JBLabel(AnimatedIcon.Default.INSTANCE)
             add(title, BorderLayout.CENTER)
-            add(JBLabel(AnimatedIcon.Default.INSTANCE), BorderLayout.WEST)
+            add(spinner, BorderLayout.WEST)
+            add(Box.createRigidArea(spinner.preferredSize), BorderLayout.EAST)
         }
 
         override fun paintComponent(graphics: Graphics) {
             super.paintComponent(graphics)
 
+            graphics.color = recessedBackground()
+            graphics.fillRect(0, 0, width, height)
+            paintTopEdge(graphics)
             paintSeparator(graphics)
         }
     }
@@ -306,13 +320,52 @@ public class WindowTabsBar(
         public const val OPEN_PROJECT_ACTION: String = "OpenFile"
 
         private const val PLUS_PADDING: Int = 10
-        private const val TAB_VERTICAL_PADDING: Int = 5
+        private const val TAB_VERTICAL_PADDING: Int = 6
         private const val TAB_HORIZONTAL_PADDING: Int = 8
         private const val ICON_SIZE: Int = 16
+        private const val ICON_GAP: Int = 6
+        private const val ICON_DROP: Int = 1
         private const val DRAG_THRESHOLD: Int = 8
 
+        private const val LIGHT_RECESS_ALPHA: Int = 30
+        private const val DARK_RECESS_ALPHA: Int = 80
+        private const val LIGHT_EDGE_ALPHA: Int = 48
+        private const val DARK_EDGE_ALPHA: Int = 150
+        private const val LIGHT_SHADOW_ALPHA: Int = 22
+        private const val DARK_SHADOW_ALPHA: Int = 70
+        private const val SHADOW_HEIGHT: Int = 4
+        private const val HOVER_MIX: Double = 0.5
+
+        /** Shades the toolbar colour for the tabs behind the selected one, like macOS window tabs. */
+        private val RECESS_SHADE: JBColor =
+            JBColor(Color(0, 0, 0, LIGHT_RECESS_ALPHA), Color(0, 0, 0, DARK_RECESS_ALPHA))
+
+        /** Darkens whatever is under it, so the lines show on the toolbar colour and on the recessed tabs alike. */
+        private val EDGE: JBColor = JBColor(Color(0, 0, 0, LIGHT_EDGE_ALPHA), Color(0, 0, 0, DARK_EDGE_ALPHA))
+
+        private val SHADOW: JBColor = JBColor(Color(0, 0, 0, LIGHT_SHADOW_ALPHA), Color(0, 0, 0, DARK_SHADOW_ALPHA))
+
+        /** The selected tab merges with the toolbar above it. */
+        private fun selectedBackground(): Color = JBUI.CurrentTheme.CustomFrameDecorations.mainToolbarBackground(true)
+
+        private fun recessedBackground(): Color = ColorUtil.alphaBlending(RECESS_SHADE, selectedBackground())
+
+        private fun hoveredBackground(): Color = ColorUtil.mix(recessedBackground(), selectedBackground(), HOVER_MIX)
+
+        /** The tabs behind the selected one sit under a line and a soft shadow cast by the toolbar. */
+        private fun JPanel.paintTopEdge(graphics: Graphics) {
+            val shadowHeight: Int = JBUI.scale(SHADOW_HEIGHT)
+            val graphics2D: Graphics2D = graphics.create() as Graphics2D
+            val fadedShadow: Color = ColorUtil.withAlpha(SHADOW, 0.0)
+            graphics2D.paint = GradientPaint(0f, 1f, SHADOW, 0f, (1 + shadowHeight).toFloat(), fadedShadow)
+            graphics2D.fillRect(0, 1, width, shadowHeight)
+            graphics2D.color = EDGE
+            graphics2D.fillRect(0, 0, width, 1)
+            graphics2D.dispose()
+        }
+
         private fun JPanel.paintSeparator(graphics: Graphics) {
-            graphics.color = JBColor.border()
+            graphics.color = EDGE
             graphics.fillRect(width - 1, 0, 1, height)
         }
     }

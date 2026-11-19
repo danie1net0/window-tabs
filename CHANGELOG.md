@@ -5,6 +5,14 @@ and versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Changed
+
+- A dragged tab follows the mouse while the other tabs slide aside to show where it will land.
+- The tabs look like macOS window tabs: the selected one merges with the toolbar, the others sit recessed behind it
+  under a soft shadow, and the titles stay centered when the close button appears.
+- The project icon is a rounded badge in the project's colour with its initials centred, instead of the IDE's
+  generated icon, which is not square on every platform and crowds its letters.
+
 ## [0.2.0] - 2026-11-13
 
 ### Added

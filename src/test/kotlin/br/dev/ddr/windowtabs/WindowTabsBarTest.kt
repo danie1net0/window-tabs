@@ -12,8 +12,8 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
+import java.awt.Color
 import java.awt.Component
-import java.awt.Cursor
 import java.awt.Frame
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -39,18 +39,8 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertEquals(project.basePath, bar.tabs()[0].toolTipText)
         assertEquals(other.basePath, bar.tabs()[1].toolTipText)
         assertEquals(1, WindowTabsBar(other).strip().selectedIndex)
-        assertTrue(
-            bar
-                .tabs()[0]
-                .title()
-                .font.isBold,
-        )
-        assertFalse(
-            bar
-                .tabs()[1]
-                .title()
-                .font.isBold,
-        )
+        assertEquals(UIUtil.getLabelForeground(), bar.tabs()[0].title().foreground)
+        assertEquals(UIUtil.getContextHelpForeground(), bar.tabs()[1].title().foreground)
     }
 
     fun `test a project still reopening shows as a dimmed tab with a spinner`() {
@@ -152,14 +142,19 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         tab.setSize(200, 30)
         val close = tab.closeButton()
 
+        val balance = tab.getComponent(2)
+
         mouse(tab, MouseEvent.MOUSE_ENTERED, 10, 10)
         assertTrue(close.isVisible)
+        assertTrue(balance.isVisible)
+        assertEquals(close.preferredSize, balance.preferredSize)
         mouse(close, MouseEvent.MOUSE_ENTERED, 1, 1)
         assertSame(AllIcons.Actions.CloseHovered, close.icon)
         mouse(close, MouseEvent.MOUSE_EXITED, 1, 1)
         assertSame(AllIcons.Actions.Close, close.icon)
         mouse(tab, MouseEvent.MOUSE_EXITED, -5, -5)
         assertFalse(close.isVisible)
+        assertFalse(balance.isVisible)
 
         click(close, MouseEvent.BUTTON1)
         dispatchEvents()
@@ -216,13 +211,33 @@ class WindowTabsBarTest : WindowTabsTestCase() {
 
         val image = BufferedImage(600, 30, BufferedImage.TYPE_INT_ARGB)
         val graphics = image.createGraphics()
+        bar.paint(graphics.create())
         bar.tabs().forEach { tab: JPanel -> tab.paint(graphics.create()) }
         graphics.dispose()
 
-        assertEquals(
-            bar.background,
-            JBUI.CurrentTheme.EditorTabs.background(),
-        )
+        val toolbar = JBUI.CurrentTheme.CustomFrameDecorations.mainToolbarBackground(true)
+        val selected = painted(bar.tabs()[0])
+        val plain = painted(bar.tabs()[2])
+        assertEquals(toolbar, bar.tabs()[0].background)
+        assertFalse(bar.background == toolbar)
+        assertEquals(bar.background, bar.tabs()[2].background)
+        assertFalse(bar.tabs()[1].background in listOf(toolbar, bar.background))
+        assertEquals(Color(selected.getRGB(4, 15), true), toolbar)
+        assertEquals(Color(selected.getRGB(100, 0), true), toolbar)
+        val plainFill = Color(plain.getRGB(4, 15), true)
+        assertEquals(plainFill, bar.background)
+        assertTrue(Color(plain.getRGB(100, 0), true).green < plainFill.green)
+        assertTrue(Color(plain.getRGB(100, 2), true).green < plainFill.green)
+        assertTrue(Color(plain.getRGB(199, 15), true).green < plainFill.green)
+    }
+
+    private fun painted(tab: JPanel): BufferedImage {
+        val image = BufferedImage(tab.width, tab.height, BufferedImage.TYPE_INT_ARGB)
+        val graphics = image.createGraphics()
+        tab.paint(graphics)
+        graphics.dispose()
+
+        return image
     }
 
     fun `test hidden on macOS unless the settings ask for it`() {
@@ -242,7 +257,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     }
 
     fun `test tabs carry the project icon unless turned off`() {
-        assertNotNull(WindowTabsBar(project).tabs()[0].title().icon)
+        assertTrue(WindowTabsBar(project).tabs()[0].title().icon is ProjectBadge)
 
         WindowTabsSettings.getInstance().state.showProjectIcons = false
         assertNull(WindowTabsBar(project).tabs()[0].title().icon)
@@ -253,10 +268,21 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val bar = laidOut(WindowTabsBar(project))
         val first = bar.tabs()[0]
 
+        press(first, 10)
+        move(first, first.width / 2)
+        bar.strip().doLayout()
+        assertEquals(first.width / 2 - 10, first.x)
+        assertSame(first, bar.strip().draggedTab)
+
+        move(first, 12)
+        bar.strip().doLayout()
+        assertEquals(first.width / 2 - 8, first.x)
+
         drag(first, 10, first.width + 10)
 
         assertEquals(listOf(second, project), openProjects())
-        assertEquals(Cursor.getDefaultCursor(), first.cursor)
+        assertSame(first, bar.strip().getComponent(1))
+        assertNull(bar.strip().draggedTab)
     }
 
     fun `test a press that barely moves stays a click`() {
@@ -301,11 +327,29 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         startPosition: Int,
         endPosition: Int,
     ) {
+        press(tab, startPosition)
+        move(tab, endPosition)
+        val button: Int = MouseEvent.BUTTON1
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, endPosition, 5, 1, false, button))
+    }
+
+    private fun press(
+        tab: JPanel,
+        position: Int,
+    ) {
         val pressed: Int = MouseEvent.BUTTON1_DOWN_MASK
         val button: Int = MouseEvent.BUTTON1
-        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_PRESSED, 0, pressed, startPosition, 5, 1, false, button))
-        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_DRAGGED, 0, pressed, endPosition, 5, 0, false, button))
-        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, endPosition, 5, 1, false, button))
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_PRESSED, 0, pressed, position, 5, 1, false, button))
+    }
+
+    /** [position] is relative to where the tab is now, as the mouse moves it along. */
+    private fun move(
+        tab: JPanel,
+        position: Int,
+    ) {
+        val pressed: Int = MouseEvent.BUTTON1_DOWN_MASK
+        val button: Int = MouseEvent.BUTTON1
+        tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_DRAGGED, 0, pressed, position, 5, 0, false, button))
     }
 
     /** Lays the bar out by hand, as a headless test has no peer to do it; the viewport sizes the strip itself. */

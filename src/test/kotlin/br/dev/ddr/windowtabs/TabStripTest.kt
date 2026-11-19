@@ -3,11 +3,15 @@ package br.dev.ddr.windowtabs
 import com.intellij.util.ui.JBUI
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.awt.Dimension
+import java.awt.Graphics
 import java.awt.Point
 import java.awt.Rectangle
+import java.awt.image.BufferedImage
 import javax.swing.JLabel
 import javax.swing.JViewport
 import javax.swing.SwingConstants
@@ -51,13 +55,64 @@ class TabStripTest {
     }
 
     @Test
-    fun `finds the tab under a point`() {
+    fun `a dragged tab follows the mouse and drops into its slot`() {
         val strip = strip(3)
         inViewport(strip, minimumWidth * 3)
+        val first = strip.getComponent(0)
 
-        assertEquals(0, strip.indexAt(1))
-        assertEquals(1, strip.indexAt(minimumWidth + 1))
-        assertEquals(2, strip.indexAt(minimumWidth * 10))
+        strip.dragTo(first, minimumWidth + 10)
+        strip.doLayout()
+
+        assertSame(first, strip.draggedTab)
+        assertEquals(minimumWidth + 10, first.x)
+        assertEquals(1, strip.drop())
+        assertNull(strip.draggedTab)
+        assertSame(first, strip.getComponent(1))
+    }
+
+    @Test
+    fun `dropping without a drag moves nothing`() {
+        val strip = strip(2)
+
+        assertNull(strip.drop())
+        assertEquals("tab 0", (strip.getComponent(0) as JLabel).text)
+    }
+
+    @Test
+    fun `clearing the tabs forgets the drag`() {
+        val strip = strip(2)
+        strip.dragTo(strip.getComponent(0), 10)
+
+        strip.removeAll()
+
+        assertNull(strip.draggedTab)
+        assertEquals(0, strip.componentCount)
+    }
+
+    @Test
+    fun `paints the dragged tab over its neighbours`() {
+        val strip = TabStrip()
+        val painted = mutableListOf<String>()
+        repeat(2) { number: Int ->
+            strip.add(
+                object : JLabel("tab $number") {
+                    override fun paint(graphics: Graphics) {
+                        painted.add(text)
+                    }
+                },
+            )
+        }
+        inViewport(strip, minimumWidth * 2)
+        val image = BufferedImage(minimumWidth * 2, 30, BufferedImage.TYPE_INT_ARGB)
+
+        strip.paint(image.createGraphics())
+        assertEquals(listOf("tab 1", "tab 0"), painted)
+
+        painted.clear()
+        strip.dragTo(strip.getComponent(1), minimumWidth / 2)
+        strip.doLayout()
+        strip.paint(image.createGraphics())
+        assertEquals("tab 1", painted.last())
     }
 
     @Test
