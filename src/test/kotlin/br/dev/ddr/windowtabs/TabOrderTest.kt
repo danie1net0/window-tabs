@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TabOrderTest {
@@ -41,8 +42,8 @@ class TabOrderTest {
         val order = TabOrder { keys: List<String> -> reported.add(keys) }
         order.sync(listOf("a", "b", "c"))
 
-        order.move("c", 0)
-        order.move("a", 99)
+        order.move("c", "a")
+        order.move("a", null)
 
         assertEquals(listOf("c", "b", "a"), order.sync(listOf("a", "b", "c")))
         assertEquals(listOf(listOf("a", "b", "c"), listOf("c", "a", "b"), listOf("c", "b", "a")), reported)
@@ -68,10 +69,10 @@ class TabOrderTest {
         val order = TabOrder(listOf("a", "gone", "b", "c")) { keys: List<String> -> reported.add(keys) }
         order.sync(listOf("a", "b", "c"))
 
-        order.move("a", 1)
+        order.move("a", "c")
         assertEquals(listOf("b", "a", "c"), order.sync(listOf("a", "b", "c")))
 
-        order.move("c", -3)
+        order.move("c", "b")
         assertEquals(listOf("c", "b", "a"), order.sync(listOf("a", "b", "c")))
         assertEquals(listOf("gone", "c", "b", "a"), reported.last())
     }
@@ -81,7 +82,7 @@ class TabOrderTest {
         val order = TabOrder(listOf("gone", "a"))
         order.sync(listOf("a"))
 
-        order.move("a", 0)
+        order.move("a", null)
 
         assertEquals(listOf("a"), order.sync(listOf("a")))
     }
@@ -101,13 +102,39 @@ class TabOrderTest {
     }
 
     @Test
+    fun `an anchor it never heard of puts the tab last`() {
+        val order = TabOrder()
+        order.sync(listOf("a", "b", "c"))
+
+        order.move("a", "unknown")
+
+        assertEquals(listOf("b", "c", "a"), order.sync(listOf("a", "b", "c")))
+    }
+
+    @Test
+    fun `a project closed during this run outlives older closed ones past the limit`() {
+        val older: List<String> = (1..TabOrder.MAX_REMEMBERED - 2).map { number: Int -> "older$number" }
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(older) { keys: List<String> -> reported.add(keys) }
+        order.sync(listOf("a", "b"))
+        order.sync(listOf("b"))
+
+        order.sync(listOf("b", "c"))
+
+        assertEquals(TabOrder.MAX_REMEMBERED, reported.last().size)
+        assertEquals("older2", reported.last().first())
+        assertTrue("a" in reported.last())
+    }
+
+    @Test
     fun `reports nothing when the order stays the same`() {
         val reported = mutableListOf<List<String>>()
         val order = TabOrder(listOf("a", "b")) { keys: List<String> -> reported.add(keys) }
 
         order.sync(listOf("a", "b"))
-        order.move("a", 0)
-        order.move("missing", 1)
+        order.move("a", "b")
+        order.move("a", "a")
+        order.move("missing", "a")
 
         assertEquals(emptyList<List<String>>(), reported)
     }

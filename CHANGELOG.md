@@ -20,7 +20,9 @@ and versions follow [Semantic Versioning](https://semver.org).
 - Switching between two maximized windows on the same monitor keeps the target's restore size.
 - The close and plus buttons react to the left button only, and to a click that moves a few pixels.
 - Projects kept in an .ipr file match their last-session entry, so they no longer show twice while the IDE reopens.
-- The saved tab order keeps at most 100 projects.
+- The saved tab order keeps at most 100 projects, forgetting the ones closed longest ago first.
+- A drop lands in front of the tab the user saw, even if a tab opened or closed during the drag.
+- Pressing another mouse button mid-drag neither drops the tab nor clicks.
 
 ## [0.2.0] - 2026-11-19
 

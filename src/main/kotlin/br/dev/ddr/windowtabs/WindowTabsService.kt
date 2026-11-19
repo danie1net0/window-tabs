@@ -68,11 +68,11 @@ public class WindowTabsService {
 
     public fun move(
         key: String,
-        index: Int,
+        before: String?,
     ) {
         // The order only knows the keys it has synced; a drag may come before any strip asked for its tabs.
         tabsOf(ProjectManager.getInstance().openProjects.toList())
-        order.move(key, index)
+        order.move(key, before)
         notifyChanged()
     }
 

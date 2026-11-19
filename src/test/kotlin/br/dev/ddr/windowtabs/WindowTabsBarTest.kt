@@ -181,6 +181,40 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertFalse(other.isDisposed)
     }
 
+    fun `test letting go of another button mid-drag neither drops nor clicks`() {
+        val second = openAnotherProject("second")
+        val windowManager = fakeWindowManager()
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        press(first, 10)
+        move(first, first.width / 2)
+        val right: Int = MouseEvent.BUTTON3
+        val held: Int = MouseEvent.BUTTON1_DOWN_MASK
+        val chordPress = MouseEvent(first, MouseEvent.MOUSE_PRESSED, 0, held, 20, 5, 1, false, right)
+
+        first.dispatchEvent(chordPress)
+        release(first, MouseEvent.BUTTON3, first.width / 2)
+        release(bar.tabs()[1], MouseEvent.BUTTON1)
+
+        assertSame(first, bar.strip().draggedTab)
+        verifyNoInteractions(windowManager)
+        assertEquals(listOf(project, second), openProjects())
+    }
+
+    fun `test dropping a tab between two others lands it in front of the next one`() {
+        val second = openAnotherProject("second")
+        val third = openAnotherProject("third")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        val width: Int = first.width
+
+        press(first, 10)
+        move(first, width + 10)
+        release(first, MouseEvent.BUTTON1, width + 10)
+
+        assertEquals(listOf(second, project, third), openProjects())
+    }
+
     fun `test dragging with another button reorders nothing`() {
         val second = openAnotherProject("second")
         val bar = laidOut(WindowTabsBar(project))

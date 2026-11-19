@@ -199,7 +199,7 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         val second = openAnotherProject("second")
         val calls = recordTabsChanged()
 
-        service.move(keyOf(second), 0)
+        service.move(keyOf(second), keyOf(project))
         dispatchEvents()
 
         assertEquals(listOf(second, project), openProjects())

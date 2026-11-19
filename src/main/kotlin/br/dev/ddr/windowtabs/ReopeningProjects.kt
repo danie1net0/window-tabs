@@ -10,10 +10,12 @@ import com.intellij.ide.RecentProjectsManagerBase
  */
 public class ReopeningProjects {
     private val waiting = mutableListOf<WindowTab.Reopening>()
+    private var expected: Set<String> = emptySet()
     private var anyOpened = false
 
     public fun expect(projects: List<WindowTab.Reopening>) {
         anyOpened = false
+        expected = projects.map { project: WindowTab.Reopening -> project.key }.toSet()
         waiting.clear()
         waiting.addAll(projects)
     }
@@ -33,7 +35,8 @@ public class ReopeningProjects {
         val first: Boolean = !anyOpened
         anyOpened = true
 
-        if (!first || waiting.any { project: WindowTab.Reopening -> project.key == key }) {
+        // Checked against the whole session, not what is still waiting: the window's own strip already took it off.
+        if (!first || key in expected) {
             return
         }
 

@@ -26,6 +26,16 @@ class LeftClickTest {
     }
 
     @Test
+    fun `a chord counts only the button let go`() {
+        label.addMouseListener(LeftClick { event: MouseEvent -> clicks.add(event) })
+        val left: Int = MouseEvent.BUTTON1_DOWN_MASK
+
+        label.dispatchEvent(MouseEvent(label, MouseEvent.MOUSE_RELEASED, 0, left, 5, 5, 1, false, MouseEvent.BUTTON3))
+
+        assertEquals(0, clicks.size)
+    }
+
+    @Test
     fun `ignores other buttons and releases outside`() {
         label.addMouseListener(LeftClick { event: MouseEvent -> clicks.add(event) })
 

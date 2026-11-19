@@ -28,6 +28,7 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.Box
 import javax.swing.Icon
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.ScrollPaneConstants
@@ -116,7 +117,9 @@ public class WindowTabsBar(
         repaint()
     }
 
-    private fun view(tab: WindowTab): JPanel =
+    private fun view(tab: WindowTab): JPanel = panelFor(tab).apply { putClientProperty(KEY_PROPERTY, tab.key) }
+
+    private fun panelFor(tab: WindowTab): JPanel =
         when (tab) {
             is WindowTab.Open -> Tab(tab, tab.project == project)
             is WindowTab.Reopening -> Placeholder(tab)
@@ -218,9 +221,10 @@ public class WindowTabsBar(
             val manager: RecentProjectsManagerBase = RecentProjectsManagerBase.getInstanceEx()
             val size: Int = JBUI.scale(ICON_SIZE)
 
-            // A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT.
+            // A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT and scales
+            // the unscaled size it is given.
             if (manager.hasCustomIcon(target)) {
-                return manager.getProjectIcon(tab.key, true, size, target.name)
+                return manager.getProjectIcon(tab.key, true, ICON_SIZE, target.name)
             }
 
             val color: Color = ProjectBadge.colorFor(tab.key) { manager.getProjectIcon(tab.key, true) }
@@ -233,14 +237,14 @@ public class WindowTabsBar(
          * that drag is called off and the strip catches up on what it skipped.
          */
         private fun press(event: MouseEvent) {
+            if (event.button != MouseEvent.BUTTON1) {
+                return
+            }
+
             if (tabs.draggedTab != null) {
                 tabs.removeAll()
                 rebuild()
 
-                return
-            }
-
-            if (!SwingUtilities.isLeftMouseButton(event)) {
                 return
             }
 
@@ -265,31 +269,40 @@ public class WindowTabsBar(
          * which X11 drops once the mouse moves a few pixels, short of the distance that starts a drag.
          */
         private fun release(event: MouseEvent) {
-            grabX = null
-            val index: Int? = tabs.drop(this)
-
-            if (index != null) {
-                WindowTabsService.getInstance().move(tab.key, index)
-
+            if (event.button == MouseEvent.BUTTON1 && endDrag()) {
                 return
             }
 
-            // A tab the strip replaced while the button was down no longer stands for what the user pressed.
-            if (parent !== tabs || !contains(event.point)) {
+            // No click while a drag is on, nor on a tab the strip replaced while the button was down.
+            if (tabs.draggedTab != null || parent !== tabs || !contains(event.point)) {
                 return
             }
 
             click(event)
         }
 
+        /** Drops this tab in front of the tab that ends up after it, the one the user can see it land before. */
+        private fun endDrag(): Boolean {
+            grabX = null
+            val index: Int = tabs.drop(this) ?: return false
+            val next: String? =
+                tabs.components.getOrNull(index + 1)?.let { view: Component ->
+                    (view as JComponent).getClientProperty(KEY_PROPERTY) as String
+                }
+
+            WindowTabsService.getInstance().move(tab.key, next)
+
+            return true
+        }
+
         private fun click(event: MouseEvent) {
-            if (SwingUtilities.isMiddleMouseButton(event)) {
+            if (event.button == MouseEvent.BUTTON2) {
                 WindowTabsService.getInstance().close(target)
 
                 return
             }
 
-            if (!SwingUtilities.isLeftMouseButton(event) || selected) {
+            if (event.button != MouseEvent.BUTTON1 || selected) {
                 return
             }
 
@@ -356,6 +369,9 @@ public class WindowTabsBar(
 
     public companion object {
         public const val OPEN_PROJECT_ACTION: String = "OpenFile"
+
+        /** Each tab's key, so a drop can name the tab it lands in front of. */
+        private const val KEY_PROPERTY: String = "windowTabs.key"
 
         private const val PLUS_PADDING: Int = 10
         private const val TAB_VERTICAL_PADDING: Int = 6

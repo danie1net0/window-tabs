@@ -11,13 +11,17 @@ public class TabOrder(
     private val keys = initial.distinct().toMutableList()
     private var visible: List<String> = emptyList()
 
+    /** Closed during this run, oldest first; the saved keys not open now were closed before it and go first. */
+    private val closedLately = mutableListOf<String>()
+
     public fun sync(openKeys: List<String>): List<String> {
         val before: List<String> = keys.toList()
         openKeys.filterNot { key: String -> key in keys }.forEach { key: String -> keys.add(key) }
 
         val open: Set<String> = openKeys.toSet()
-        val surplus: Int = (keys.size - MAX_REMEMBERED).coerceAtLeast(0)
-        keys.removeAll(keys.filterNot { key: String -> key in open }.take(surplus).toSet())
+        closedLately.removeAll(open)
+        closedLately.addAll(visible.filterNot { key: String -> key in open || key in closedLately })
+        forgetSurplus(open)
         visible = keys.filter { key: String -> key in open }
 
         report(before)
@@ -25,26 +29,36 @@ public class TabOrder(
         return visible
     }
 
-    /** Puts [key] at [index] among the open tabs, in front of the open tab that held that place. */
+    /**
+     * Puts [key] in front of the tab [before], or after the last open tab when [before] is null. An anchor key rather
+     * than an index, so a tab opening or closing while the user dragged does not shift where the drop lands.
+     */
     public fun move(
         key: String,
-        index: Int,
+        before: String?,
     ) {
-        if (key !in visible) {
+        if (key !in visible || key == before) {
             return
         }
 
-        val before: List<String> = keys.toList()
+        val previous: List<String> = keys.toList()
         val others: List<String> = visible.filterNot { other: String -> other == key }
-        val target: Int = index.coerceIn(0, others.size)
-        val anchor: String? = others.getOrNull(target)
-
         keys.remove(key)
-        val afterLast: Int = others.lastOrNull()?.let { other: String -> keys.indexOf(other) + 1 } ?: 0
-        keys.add(anchor?.let { other: String -> keys.indexOf(other) } ?: afterLast, key)
-        visible = others.take(target) + key + others.drop(target)
 
-        report(before)
+        val afterLast: Int = others.lastOrNull()?.let { other: String -> keys.indexOf(other) + 1 } ?: 0
+        val anchor: String? = before?.takeIf { other: String -> other in keys }
+        keys.add(anchor?.let { other: String -> keys.indexOf(other) } ?: afterLast, key)
+        val shown: Set<String> = visible.toSet()
+        visible = keys.filter { other: String -> other in shown }
+
+        report(previous)
+    }
+
+    private fun forgetSurplus(open: Set<String>) {
+        val surplus: Int = (keys.size - MAX_REMEMBERED).coerceAtLeast(0)
+        val closedBefore: List<String> = keys.filterNot { key: String -> key in open || key in closedLately }
+        keys.removeAll((closedBefore + closedLately).take(surplus).toSet())
+        closedLately.retainAll(keys.toSet())
     }
 
     public companion object {

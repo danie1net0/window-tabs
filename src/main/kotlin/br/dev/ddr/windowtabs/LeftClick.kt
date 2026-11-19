@@ -2,7 +2,6 @@ package br.dev.ddr.windowtabs
 
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import javax.swing.SwingUtilities
 
 /**
  * Runs [action] when the left button is let go over the component it was pressed on. AWT's own click event is no use
@@ -12,7 +11,8 @@ public class LeftClick(
     private val action: (MouseEvent) -> Unit,
 ) : MouseAdapter() {
     override fun mouseReleased(event: MouseEvent) {
-        if (!SwingUtilities.isLeftMouseButton(event) || !event.component.contains(event.point)) {
+        // The button let go, not the ones still held: a chord must not count as a left click.
+        if (event.button != MouseEvent.BUTTON1 || !event.component.contains(event.point)) {
             return
         }
 
