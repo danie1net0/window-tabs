@@ -49,6 +49,44 @@ class TabOrderTest {
     }
 
     @Test
+    fun `keeps the place of projects closed one by one, as when the IDE quits`() {
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(listOf("c", "a", "b")) { keys: List<String> -> reported.add(keys) }
+        order.sync(listOf("a", "b", "c"))
+
+        order.sync(listOf("a", "b"))
+        order.sync(listOf("b"))
+        order.sync(emptyList())
+
+        assertEquals(emptyList<List<String>>(), reported)
+        assertEquals(listOf("c", "a", "b"), TabOrder(listOf("c", "a", "b")).sync(listOf("b", "a", "c")))
+    }
+
+    @Test
+    fun `moves among the open tabs around the closed ones it remembers`() {
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(listOf("a", "gone", "b", "c")) { keys: List<String> -> reported.add(keys) }
+        order.sync(listOf("a", "b", "c"))
+
+        order.move("a", 1)
+        assertEquals(listOf("b", "a", "c"), order.sync(listOf("a", "b", "c")))
+
+        order.move("c", -3)
+        assertEquals(listOf("c", "b", "a"), order.sync(listOf("a", "b", "c")))
+        assertEquals(listOf("gone", "c", "b", "a"), reported.last())
+    }
+
+    @Test
+    fun `a single open tab stays put`() {
+        val order = TabOrder(listOf("gone", "a"))
+        order.sync(listOf("a"))
+
+        order.move("a", 0)
+
+        assertEquals(listOf("a"), order.sync(listOf("a")))
+    }
+
+    @Test
     fun `reports nothing when the order stays the same`() {
         val reported = mutableListOf<List<String>>()
         val order = TabOrder(listOf("a", "b")) { keys: List<String> -> reported.add(keys) }

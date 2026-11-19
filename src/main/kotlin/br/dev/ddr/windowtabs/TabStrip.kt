@@ -20,10 +20,11 @@ public class TabStrip :
     public val draggedTab: Component?
         get() = drag?.tab
 
+    /** Scrolls to the selected tab only when the selection changes, so a refresh keeps where the user scrolled to. */
     public var selectedIndex: Int? = null
         set(value) {
+            scrollPending = scrollPending || value != field
             field = value
-            scrollPending = true
         }
 
     /**
@@ -54,11 +55,19 @@ public class TabStrip :
         scrollRectToVisible(getComponent(index).bounds)
     }
 
-    /** Draws [tab] with its left edge at [left] while the other tabs slide aside to open its drop slot. */
+    /**
+     * Draws [tab] with its left edge at [left] while the other tabs slide aside to open its drop slot.
+     * A tab the strip no longer holds, because the strip was rebuilt mid-drag, is ignored:
+     * dropping it would put the stale tab back.
+     */
     public fun dragTo(
         tab: Component,
         left: Int,
     ) {
+        if (tab.parent !== this) {
+            return
+        }
+
         drag = TabDrag(tab, left)
 
         revalidate()

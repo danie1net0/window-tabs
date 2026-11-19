@@ -15,7 +15,7 @@
       <li><b>Alt+Shift+1…9</b> jump to a tab; <i>Window | Project Tabs</i> also has next and previous tab,
           ready for a shortcut of your choice.</li>
       <li><b>Drag</b> a tab to reorder the strip; the order is kept for the next start.</li>
-      <li>Each tab shows the project's icon. With many projects the tabs keep a readable width and the strip scrolls.</li>
+      <li>Each tab shows a badge with the project's initials. With many projects the tabs keep a readable width and the strip scrolls.</li>
     </ul>
     <p>Each project stays in its own window, so the IDE handles projects exactly as before.
     Works in every JetBrains IDE 2024.3 or newer, Android Studio included.

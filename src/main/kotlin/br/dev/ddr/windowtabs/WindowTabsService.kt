@@ -10,19 +10,17 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.openapi.wm.impl.welcomeScreen.WelcomeFrame
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.awt.Frame
-import java.awt.Rectangle
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import javax.swing.JFrame
 
 @Service(Service.Level.APP)
 public class WindowTabsService {
-    private val order =
-        TabOrder(WindowTabsSettings.getInstance().state.tabOrder) { keys: List<String> ->
-            WindowTabsSettings.getInstance().state.tabOrder = keys.toMutableList()
-        }
+    /** The service outlives each test while the settings do not, so tests load the order again. */
+    internal var order: TabOrder = savedOrder()
     private val reopening = ReopeningProjects()
 
     /**
@@ -82,16 +80,31 @@ public class WindowTabsService {
         reopening.expect(projects)
     }
 
-    /** A project window is up: refresh the strips and wait for the next one before calling the reopen over. */
-    public fun projectOpened() {
-        notifyChanged()
-        pendingReopenEnd?.cancel(false)
-        pendingReopenEnd = scheduleReopenEnd(Runnable { reopenFinished() })
+    /**
+     * A project window is up: refresh the strips and wait for the next one before calling the reopen over.
+     * Startup activities of several projects run on background threads at once, so the timer is handled on the EDT.
+     */
+    public fun projectOpened(project: Project) {
+        ApplicationManager.getApplication().invokeLater(
+            {
+                reopening.opened(WindowTab.Open(project).key)
+                notifyChanged()
+                pendingReopenEnd?.cancel(false)
+                pendingReopenEnd = scheduleReopenEnd(Runnable { reopenFinished() })
+            },
+            ModalityState.any(),
+        )
     }
 
+    /** Runs on the EDT, where the strips read the placeholders, even when the timer fires on a pool thread. */
     public fun reopenFinished() {
-        reopening.finish()
-        notifyChanged()
+        ApplicationManager.getApplication().invokeLater(
+            {
+                reopening.finish()
+                notifyChanged()
+            },
+            ModalityState.any(),
+        )
     }
 
     /** Refreshes the strips even under a modal dialog or progress, which the IDE may show while it reopens projects. */
@@ -124,9 +137,9 @@ public class WindowTabsService {
             return
         }
 
-        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds)
+        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds, destination.size)
         destination.extendedState = Frame.NORMAL
-        placement.bounds?.let { bounds: Rectangle -> destination.bounds = bounds }
+        destination.bounds = placement.bounds
         destination.extendedState = placement.extendedState
     }
 
@@ -137,6 +150,8 @@ public class WindowTabsService {
             }
 
             ProjectManager.getInstance().closeAndDispose(project)
+            // The platform's own close actions bring the Welcome screen back once no project is left; so must this.
+            WelcomeFrame.showIfNoProjectOpened()
         }
     }
 
@@ -145,5 +160,10 @@ public class WindowTabsService {
         private const val REOPEN_QUIET_SECONDS: Long = 30L
 
         public fun getInstance(): WindowTabsService = service()
+
+        internal fun savedOrder(): TabOrder =
+            TabOrder(WindowTabsSettings.getInstance().state.tabOrder) { keys: List<String> ->
+                WindowTabsSettings.getInstance().state.tabOrder = keys.toMutableList()
+            }
     }
 }

@@ -79,6 +79,20 @@ class TabStripTest {
     }
 
     @Test
+    fun `ignores a tab it no longer holds`() {
+        val strip = strip(2)
+        val stale = strip.getComponent(0)
+        strip.removeAll()
+        strip.add(JLabel("fresh"))
+
+        strip.dragTo(stale, 10)
+
+        assertNull(strip.draggedTab)
+        assertNull(strip.drop())
+        assertEquals(1, strip.componentCount)
+    }
+
+    @Test
     fun `clearing the tabs forgets the drag`() {
         val strip = strip(2)
         strip.dragTo(strip.getComponent(0), 10)
@@ -168,10 +182,26 @@ class TabStripTest {
     }
 
     @Test
+    fun `a refresh with the same selection keeps where the user scrolled to`() {
+        val strip = strip(6)
+        val viewport = inViewport(strip, minimumWidth * 2)
+        strip.selectedIndex = 5
+        strip.doLayout()
+
+        viewport.viewPosition = Point(minimumWidth, 0)
+        strip.selectedIndex = 5
+        strip.doLayout()
+
+        assertEquals(Point(minimumWidth, 0), viewport.viewPosition)
+    }
+
+    @Test
     fun `a missing or stale selection scrolls nowhere`() {
         val strip = strip(6)
         val viewport = inViewport(strip, minimumWidth * 2)
 
+        strip.selectedIndex = 0
+        strip.doLayout()
         strip.selectedIndex = null
         strip.doLayout()
         strip.selectedIndex = 9

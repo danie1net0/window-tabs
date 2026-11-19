@@ -5,6 +5,17 @@ and versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Fixed
+
+- The saved tab order survives quitting the IDE, which closes its projects one by one.
+- Closing the last project from its tab brings the Welcome screen back instead of leaving the IDE with no window.
+- Switching to a project from a maximized window maximizes it on the same monitor.
+- A short click that moves the mouse a few pixels still switches tabs; only the left button drags.
+- The strip keeps where it was scrolled to when it refreshes, and waits for a drag to end before refreshing.
+- No dimmed tabs for the last session when the IDE starts with another project instead of reopening it.
+- The badge colour no longer depends on whether the IDE had already drawn the project icon, and a project's own
+  icon shows as drawn.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added

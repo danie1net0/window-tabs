@@ -1,5 +1,7 @@
 package br.dev.ddr.windowtabs
 
+import com.intellij.ui.DeferredIcon
+import com.intellij.util.IconUtil
 import com.intellij.util.ui.JBUI
 import java.awt.Color
 import java.awt.Component
@@ -59,9 +61,29 @@ public class ProjectBadge(
     }
 
     public companion object {
+        private const val OPAQUE: Int = 255
         private const val ARC_RATIO: Float = 0.45f
         private const val FONT_RATIO: Float = 0.5f
         private const val MAX_INITIALS: Int = 2
+
+        /**
+         * A badge in the colour of the IDE's generated [ideIcon]. A project's own icon (.idea/icon.svg) has no solid
+         * fill to read, so it shows as drawn.
+         */
+        public fun forProject(
+            name: String,
+            ideIcon: Icon,
+            size: Int,
+            drop: Int,
+        ): Icon {
+            val color: Color = colorOf(ideIcon)
+
+            if (color.alpha < OPAQUE) {
+                return IconUtil.toSize(ideIcon, size, size)
+            }
+
+            return ProjectBadge(initialsOf(name), color, size, drop)
+        }
 
         /** The first letter of each of the first two words, as the IDE's own project icons show them. */
         public fun initialsOf(name: String): String =
@@ -71,14 +93,31 @@ public class ProjectBadge(
                 .take(MAX_INITIALS)
                 .joinToString("") { word: String -> word.first().uppercase() }
 
-        /** The fill of the IDE's generated icon, read halfway down its left edge, so the badge keeps that colour. */
+        /**
+         * The fill of the IDE's generated icon, the middle of its left-to-right gradient, so the badge keeps
+         * that colour.
+         * The IDE hands out a deferred icon that paints nothing until computed, so it is computed here first.
+         */
         public fun colorOf(icon: Icon): Color {
-            val image = BufferedImage(icon.iconWidth, icon.iconHeight, BufferedImage.TYPE_INT_ARGB)
+            val solid: Icon =
+                when (icon) {
+                    is DeferredIcon -> icon.evaluate()
+                    else -> icon
+                }
+            val image = BufferedImage(solid.iconWidth, solid.iconHeight, BufferedImage.TYPE_INT_ARGB)
             val imageGraphics: Graphics2D = image.createGraphics()
-            icon.paintIcon(null, imageGraphics, 0, 0)
+            solid.paintIcon(null, imageGraphics, 0, 0)
             imageGraphics.dispose()
 
-            return Color(image.getRGB(SAMPLE_INSET, image.height / 2), true)
+            val left = Color(image.getRGB(SAMPLE_INSET, image.height / 2), true)
+            val right = Color(image.getRGB(image.width - 1 - SAMPLE_INSET, image.height / 2), true)
+
+            return Color(
+                (left.red + right.red) / 2,
+                (left.green + right.green) / 2,
+                (left.blue + right.blue) / 2,
+                minOf(left.alpha, right.alpha),
+            )
         }
 
         /** One pixel in, past any antialiased rim. */

@@ -26,6 +26,7 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
         super.setUp()
         WindowTabsSettings.getInstance().loadState(WindowTabsSettings.Options())
         WindowTabsService.getInstance().expectReopening(emptyList())
+        WindowTabsService.getInstance().order = WindowTabsService.savedOrder()
         WindowTabsService.getInstance().isMac = false
     }
 
@@ -61,6 +62,7 @@ abstract class WindowTabsTestCase : HeavyPlatformTestCase() {
         val frame = mock(JFrame::class.java, withSettings().extraInterfaces(IdeFrame::class.java))
         `when`(frame.extendedState).thenReturn(state)
         `when`(frame.bounds).thenReturn(bounds)
+        `when`(frame.size).thenReturn(bounds.size)
 
         return frame
     }

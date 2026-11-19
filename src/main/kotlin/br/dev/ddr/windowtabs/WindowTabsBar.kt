@@ -96,8 +96,9 @@ public class WindowTabsBar(
         return scrollPane
     }
 
+    /** Waits while a tab is dragged: the drop refreshes the strips anyway, and new tabs now would strand the drag. */
     private fun rebuild() {
-        if (project.isDisposed) {
+        if (project.isDisposed || tabs.draggedTab != null) {
             return
         }
 
@@ -200,27 +201,17 @@ public class WindowTabsBar(
 
                     override fun mouseExited(event: MouseEvent): Unit = updateHover(event)
 
-                    override fun mouseClicked(event: MouseEvent) {
-                        if (SwingUtilities.isMiddleMouseButton(event)) {
-                            WindowTabsService.getInstance().close(target)
-
-                            return
-                        }
-
-                        if (!SwingUtilities.isLeftMouseButton(event) || selected) {
-                            return
-                        }
-
-                        WindowTabsService.getInstance().switchTo(project, target)
-                    }
-
                     override fun mousePressed(event: MouseEvent) {
+                        if (!SwingUtilities.isLeftMouseButton(event)) {
+                            return
+                        }
+
                         grabX = event.x
                     }
 
                     override fun mouseDragged(event: MouseEvent): Unit = drag(event)
 
-                    override fun mouseReleased(event: MouseEvent): Unit = drop()
+                    override fun mouseReleased(event: MouseEvent): Unit = release(event)
                 }
             addMouseListener(mouseHandler)
             addMouseMotionListener(mouseHandler)
@@ -233,9 +224,7 @@ public class WindowTabsBar(
 
             val icon: Icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
 
-            val initials: String = ProjectBadge.initialsOf(target.name)
-
-            return ProjectBadge(initials, ProjectBadge.colorOf(icon), JBUI.scale(ICON_SIZE), JBUI.scale(ICON_DROP))
+            return ProjectBadge.forProject(target.name, icon, JBUI.scale(ICON_SIZE), JBUI.scale(ICON_DROP))
         }
 
         /** A press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
@@ -251,11 +240,39 @@ public class WindowTabsBar(
             tabs.dragTo(this, point.x - grab)
         }
 
-        private fun drop() {
+        /**
+         * Ends a drag, or acts as a click. A click is taken on release rather than from AWT's click event,
+         * which X11 drops once the mouse moves a few pixels, short of the distance that starts a drag.
+         */
+        private fun release(event: MouseEvent) {
             grabX = null
-            val index: Int = tabs.drop() ?: return
+            val index: Int? = tabs.drop()
 
-            WindowTabsService.getInstance().move(tab.key, index)
+            if (index != null) {
+                WindowTabsService.getInstance().move(tab.key, index)
+
+                return
+            }
+
+            if (!contains(event.point)) {
+                return
+            }
+
+            click(event)
+        }
+
+        private fun click(event: MouseEvent) {
+            if (SwingUtilities.isMiddleMouseButton(event)) {
+                WindowTabsService.getInstance().close(target)
+
+                return
+            }
+
+            if (!SwingUtilities.isLeftMouseButton(event) || selected) {
+                return
+            }
+
+            WindowTabsService.getInstance().switchTo(project, target)
         }
 
         private fun updateHover(event: MouseEvent) {

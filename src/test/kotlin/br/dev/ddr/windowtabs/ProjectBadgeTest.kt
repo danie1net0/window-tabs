@@ -116,6 +116,31 @@ class ProjectBadgeTest {
         assertEquals(Color.MAGENTA, ProjectBadge.colorOf(icon))
     }
 
+    @Test
+    fun `averages a gradient and stays clear where either edge is`() {
+        assertEquals(Color(150, 50, 100), ProjectBadge.colorOf(halves(Color(200, 100, 0))))
+        assertEquals(0, ProjectBadge.colorOf(halves(Color(0, 0, 0, 0))).alpha)
+    }
+
+    private fun halves(right: Color): Icon =
+        object : Icon {
+            override fun getIconWidth(): Int = 10
+
+            override fun getIconHeight(): Int = 10
+
+            override fun paintIcon(
+                component: Component?,
+                graphics: Graphics,
+                x: Int,
+                y: Int,
+            ) {
+                graphics.color = Color(100, 0, 200)
+                graphics.fillRect(x, y, 5, iconHeight)
+                graphics.color = right
+                graphics.fillRect(x + 5, y, 5, iconHeight)
+            }
+        }
+
     private companion object {
         const val SIZE: Int = 32
     }

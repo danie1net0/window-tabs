@@ -86,6 +86,15 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         assertEquals(1, calls())
     }
 
+    fun `test a first window outside the last session ends the wait at once`() {
+        service.expectReopening(listOf(WindowTab.Reopening("/work/missing", "missing")))
+
+        service.projectOpened(project)
+        dispatchEvents()
+
+        assertEquals(1, service.tabs(project).size)
+    }
+
     fun `test notifies listeners on the event thread`() {
         val calls = recordTabsChanged()
 
@@ -114,14 +123,14 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
     fun `test switching keeps the target maximized when the current frame is`() {
         val target = openAnotherProject("target")
         val windowManager = fakeWindowManager()
-        val source = fakeFrame(Frame.MAXIMIZED_BOTH)
-        val destination = fakeFrame()
+        val source = fakeFrame(Frame.MAXIMIZED_BOTH, Rectangle(1920, 0, 2560, 1440))
+        val destination = fakeFrame(Frame.NORMAL, Rectangle(0, 0, 800, 600))
         `when`(windowManager.getFrame(project)).thenReturn(source)
         `when`(windowManager.getFrame(target)).thenReturn(destination)
 
         service.switchTo(project, target)
 
-        verify(destination, never()).bounds = any()
+        verify(destination).bounds = Rectangle(2800, 420, 800, 600)
         verify(destination).extendedState = Frame.MAXIMIZED_BOTH
     }
 

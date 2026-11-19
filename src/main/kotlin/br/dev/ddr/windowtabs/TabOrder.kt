@@ -1,32 +1,46 @@
 package br.dev.ddr.windowtabs
 
+/**
+ * The saved order of the tabs. It remembers projects that are closed too: the IDE closes its projects one by one when
+ * it quits, and forgetting each one as it closes would leave next start with little of the order the user set.
+ */
 public class TabOrder(
     initial: List<String> = emptyList(),
     private val changed: (List<String>) -> Unit = {},
 ) {
     private val keys = initial.distinct().toMutableList()
+    private var visible: List<String> = emptyList()
 
     public fun sync(openKeys: List<String>): List<String> {
         val before: List<String> = keys.toList()
-        keys.retainAll(openKeys.toSet())
         openKeys.filterNot { key: String -> key in keys }.forEach { key: String -> keys.add(key) }
+
+        val open: Set<String> = openKeys.toSet()
+        visible = keys.filter { key: String -> key in open }
 
         report(before)
 
-        return keys.toList()
+        return visible
     }
 
+    /** Puts [key] at [index] among the open tabs, in front of the open tab that held that place. */
     public fun move(
         key: String,
         index: Int,
     ) {
-        if (key !in keys) {
+        if (key !in visible) {
             return
         }
 
         val before: List<String> = keys.toList()
+        val others: List<String> = visible.filterNot { other: String -> other == key }
+        val target: Int = index.coerceIn(0, others.size)
+        val anchor: String? = others.getOrNull(target)
+
         keys.remove(key)
-        keys.add(index.coerceIn(0, keys.size), key)
+        val afterLast: Int = others.lastOrNull()?.let { other: String -> keys.indexOf(other) + 1 } ?: 0
+        keys.add(anchor?.let { other: String -> keys.indexOf(other) } ?: afterLast, key)
+        visible = others.take(target) + key + others.drop(target)
 
         report(before)
     }

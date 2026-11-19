@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
@@ -16,11 +17,14 @@ import java.awt.Color
 import java.awt.Component
 import java.awt.Frame
 import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 import java.awt.event.MouseWheelEvent
 import java.awt.image.BufferedImage
+import java.nio.file.Files
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.SwingUtilities
+import javax.swing.ToolTipManager
 
 class WindowTabsBarTest : WindowTabsTestCase() {
     fun `test hidden while only one project is open`() {
@@ -104,9 +108,9 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val destination = fakeFrame()
         `when`(windowManager.getFrame(project)).thenReturn(source)
         `when`(windowManager.getFrame(other)).thenReturn(destination)
-        val bar = WindowTabsBar(project)
+        val bar = laidOut(WindowTabsBar(project))
 
-        click(bar.tabs()[1], MouseEvent.BUTTON1)
+        release(bar.tabs()[1], MouseEvent.BUTTON1)
 
         verify(destination, times(2)).extendedState = Frame.NORMAL
         assertEquals(listOf(other), focused)
@@ -115,10 +119,12 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     fun `test clicking the selected tab or with the right button does nothing`() {
         val other = openAnotherProject("other")
         val windowManager = fakeWindowManager()
-        val bar = WindowTabsBar(project)
+        val bar = laidOut(WindowTabsBar(project))
 
-        click(bar.tabs()[0], MouseEvent.BUTTON1)
-        click(bar.tabs()[1], MouseEvent.BUTTON3)
+        release(bar.tabs()[0], MouseEvent.BUTTON1)
+        release(bar.tabs()[1], MouseEvent.BUTTON3)
+        release(bar.tabs()[1], MouseEvent.BUTTON1, -5)
+        release(bar.tabs()[1], MouseEvent.BUTTON2, -5)
         dispatchEvents()
 
         verifyNoInteractions(windowManager)
@@ -127,12 +133,51 @@ class WindowTabsBarTest : WindowTabsTestCase() {
 
     fun `test middle click closes the tab's project`() {
         val other = openAnotherProject("other")
-        val bar = WindowTabsBar(project)
+        val bar = laidOut(WindowTabsBar(project))
 
-        click(bar.tabs()[1], MouseEvent.BUTTON2)
+        release(bar.tabs()[1], MouseEvent.BUTTON2)
         dispatchEvents()
 
         assertTrue(other.isDisposed)
+    }
+
+    fun `test dragging with another button reorders nothing`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        val pressed: Int = MouseEvent.BUTTON3_DOWN_MASK
+        val button: Int = MouseEvent.BUTTON3
+
+        first.dispatchEvent(MouseEvent(first, MouseEvent.MOUSE_PRESSED, 0, pressed, 10, 5, 1, false, button))
+        val far: Int = first.width + 10
+        first.dispatchEvent(MouseEvent(first, MouseEvent.MOUSE_DRAGGED, 0, pressed, far, 5, 0, false, button))
+
+        assertNull(bar.strip().draggedTab)
+        assertEquals(listOf(project, second), openProjects())
+    }
+
+    fun `test the strip waits for the drop before it refreshes`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        press(first, 10)
+        move(first, first.width / 2)
+        val button: Int = MouseEvent.BUTTON1
+        val release = MouseEvent(first, MouseEvent.MOUSE_RELEASED, 0, 0, first.width / 2, 5, 1, false, button)
+        bar.addNotify()
+
+        WindowTabsService.getInstance().notifyChanged()
+        dispatchEvents()
+        assertSame(first, bar.tabs()[0])
+
+        first.mouseListeners
+            .filterNot { listener: MouseListener -> listener is ToolTipManager }
+            .forEach { listener: MouseListener -> listener.mouseReleased(release) }
+        dispatchEvents()
+
+        assertNotSame(first, bar.tabs()[0])
+        assertEquals(listOf(project, second), openProjects())
+        bar.removeNotify()
     }
 
     fun `test close button shows on hover and closes the project`() {
@@ -263,6 +308,27 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertNull(WindowTabsBar(project).tabs()[0].title().icon)
     }
 
+    fun `test a project's own icon shows as drawn instead of a badge`() {
+        val directory = Files.createTempDirectory("custom")
+        Files.createDirectories(directory.resolve(".idea"))
+        Files.writeString(
+            directory.resolve(".idea/icon.svg"),
+            """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="4"/></svg>""",
+        )
+        val custom = PlatformTestUtil.loadAndOpenProject(directory, testRootDisposable)
+
+        val icon =
+            WindowTabsBar(custom)
+                .tabs()
+                .last()
+                .title()
+                .icon
+
+        assertNotNull(icon)
+        assertFalse(icon is ProjectBadge)
+        assertEquals(JBUI.scale(16), icon.iconWidth)
+    }
+
     fun `test dragging a tab drops it where the mouse lets go`() {
         val second = openAnotherProject("second")
         val bar = laidOut(WindowTabsBar(project))
@@ -365,6 +431,16 @@ class WindowTabsBarTest : WindowTabsTestCase() {
     }
 
     private fun JPanel.closeButton(): JBLabel = labels().first { label: JBLabel -> label.text.isNullOrEmpty() }
+
+    /** Ends a press on [tab], as a click once the mouse lets go over it. */
+    private fun release(
+        tab: JPanel,
+        button: Int,
+        horizontalPosition: Int = 1,
+    ) {
+        val event = MouseEvent(tab, MouseEvent.MOUSE_RELEASED, 0, 0, horizontalPosition, 1, 1, false, button)
+        tab.dispatchEvent(event)
+    }
 
     private fun click(
         target: Component,

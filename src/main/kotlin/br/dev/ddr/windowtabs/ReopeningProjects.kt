@@ -10,8 +10,10 @@ import com.intellij.ide.RecentProjectsManagerBase
  */
 public class ReopeningProjects {
     private val waiting = mutableListOf<WindowTab.Reopening>()
+    private var anyOpened = false
 
     public fun expect(projects: List<WindowTab.Reopening>) {
+        anyOpened = false
         waiting.clear()
         waiting.addAll(projects)
     }
@@ -21,6 +23,21 @@ public class ReopeningProjects {
         waiting.removeAll { project: WindowTab.Reopening -> project.key in openKeys }
 
         return waiting.toList()
+    }
+
+    /**
+     * When the first window to open is not one of the last session's, the IDE was started with a project of its own
+     * and is not reopening the session, so nothing more is coming.
+     */
+    public fun opened(key: String) {
+        val first: Boolean = !anyOpened
+        anyOpened = true
+
+        if (!first || waiting.any { project: WindowTab.Reopening -> project.key == key }) {
+            return
+        }
+
+        waiting.clear()
     }
 
     public fun finish() {
