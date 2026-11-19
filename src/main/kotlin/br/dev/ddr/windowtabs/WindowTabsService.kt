@@ -66,12 +66,14 @@ public class WindowTabsService {
         return StripVisibility.shows(tabCount, options, isMac)
     }
 
+    /** [current] is the window the drag happened in, which may be open before ProjectManager lists it. */
     public fun move(
+        current: Project,
         key: String,
         before: String?,
     ) {
         // The order only knows the keys it has synced; a drag may come before any strip asked for its tabs.
-        tabsOf(ProjectManager.getInstance().openProjects.toList())
+        tabs(current)
         order.move(key, before)
         notifyChanged()
     }

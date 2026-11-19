@@ -223,7 +223,7 @@ public class WindowTabsBar(
 
             // A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT and scales
             // the unscaled size it is given.
-            if (manager.hasCustomIcon(target)) {
+            if (ProjectBadge.hasOwnIcon(tab.key) { manager.hasCustomIcon(target) }) {
                 return manager.getProjectIcon(tab.key, true, ICON_SIZE, target.name)
             }
 
@@ -237,6 +237,8 @@ public class WindowTabsBar(
          * that drag is called off and the strip catches up on what it skipped.
          */
         private fun press(event: MouseEvent) {
+            grabX = null
+
             if (event.button != MouseEvent.BUTTON1) {
                 return
             }
@@ -290,7 +292,7 @@ public class WindowTabsBar(
                     (view as JComponent).getClientProperty(KEY_PROPERTY) as String
                 }
 
-            WindowTabsService.getInstance().move(tab.key, next)
+            WindowTabsService.getInstance().move(project, tab.key, next)
 
             return true
         }
@@ -315,6 +317,8 @@ public class WindowTabsBar(
             closeButton.isVisible = hovered
             balance.isVisible = hovered
 
+            // Hiding a child only invalidates; without this the title keeps the room the close button took.
+            revalidate()
             repaint()
         }
 

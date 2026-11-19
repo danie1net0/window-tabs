@@ -195,11 +195,19 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         assertFalse(target.isDisposed)
     }
 
+    fun `test a drag in a window ProjectManager does not list yet still counts its own tab`() {
+        val gone = closedProject()
+
+        service.move(gone, keyOf(gone), keyOf(project))
+
+        assertEquals(listOf(keyOf(gone), keyOf(project)), service.tabs(gone).map { tab: WindowTab -> tab.key })
+    }
+
     fun `test moving a tab changes the order and refreshes`() {
         val second = openAnotherProject("second")
         val calls = recordTabsChanged()
 
-        service.move(keyOf(second), keyOf(project))
+        service.move(project, keyOf(second), keyOf(project))
         dispatchEvents()
 
         assertEquals(listOf(second, project), openProjects())

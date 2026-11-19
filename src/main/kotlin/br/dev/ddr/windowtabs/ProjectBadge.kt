@@ -66,6 +66,13 @@ public class ProjectBadge(
         private const val MAX_INITIALS: Int = 2
 
         private val colors: MutableMap<String, Color> = ConcurrentHashMap()
+        private val ownIcons: MutableMap<String, Boolean> = ConcurrentHashMap()
+
+        /** Whether the project at [key] has its own icon, looked up on disk once rather than on every refresh. */
+        public fun hasOwnIcon(
+            key: String,
+            lookUp: () -> Boolean,
+        ): Boolean = ownIcons.getOrPut(key, lookUp)
 
         /** Stands in when the IDE's icon cannot be read, so one bad project icon does not break the strip. */
         public val FALLBACK_COLOR: Color = Color.GRAY

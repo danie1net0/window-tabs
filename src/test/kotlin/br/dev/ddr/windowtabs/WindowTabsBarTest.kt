@@ -215,6 +215,21 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertEquals(listOf(second, project, third), openProjects())
     }
 
+    fun `test a press with another button forgets an earlier left press`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        press(first, 10)
+        val right: Int = MouseEvent.BUTTON3
+        val held: Int = MouseEvent.BUTTON3_DOWN_MASK
+
+        first.dispatchEvent(MouseEvent(first, MouseEvent.MOUSE_PRESSED, 0, held, 10, 5, 1, false, right))
+        first.dispatchEvent(MouseEvent(first, MouseEvent.MOUSE_DRAGGED, 0, held, first.width, 5, 0, false, right))
+
+        assertNull(bar.strip().draggedTab)
+        assertEquals(listOf(project, second), openProjects())
+    }
+
     fun `test dragging with another button reorders nothing`() {
         val second = openAnotherProject("second")
         val bar = laidOut(WindowTabsBar(project))

@@ -23,6 +23,9 @@ and versions follow [Semantic Versioning](https://semver.org).
 - The saved tab order keeps at most 100 projects, forgetting the ones closed longest ago first.
 - A drop lands in front of the tab the user saw, even if a tab opened or closed during the drag.
 - Pressing another mouse button mid-drag neither drops the tab nor clicks.
+- Detached editor windows no longer get a strip of their own.
+- A tab's title gets its full width back when the mouse leaves it.
+- Refreshing the strip no longer checks the disk for project icons each time.
 
 ## [0.2.0] - 2026-11-19
 
