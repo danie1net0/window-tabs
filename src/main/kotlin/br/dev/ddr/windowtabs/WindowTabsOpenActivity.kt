@@ -5,6 +5,6 @@ import com.intellij.openapi.startup.ProjectActivity
 
 public class WindowTabsOpenActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
-        WindowTabsService.getInstance().projectOpened()
+        WindowTabsService.getInstance().projectOpened(project)
     }
 }

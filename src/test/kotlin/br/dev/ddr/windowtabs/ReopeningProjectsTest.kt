@@ -31,6 +31,35 @@ class ReopeningProjectsTest : WindowTabsTestCase() {
         assertEquals(listOf(beta), reopening.remaining(emptySet()))
     }
 
+    fun `test the first window being from the last session keeps waiting for the rest`() {
+        val reopening = ReopeningProjects()
+        reopening.expect(listOf(alpha, beta))
+
+        reopening.opened("/work/alpha")
+        reopening.opened("/work/elsewhere")
+
+        assertEquals(listOf(alpha, beta), reopening.remaining(emptySet()))
+    }
+
+    fun `test a first window its own strip already counted keeps the rest waiting`() {
+        val reopening = ReopeningProjects()
+        reopening.expect(listOf(alpha, beta))
+        reopening.remaining(setOf("/work/alpha"))
+
+        reopening.opened("/work/alpha")
+
+        assertEquals(listOf(beta), reopening.remaining(emptySet()))
+    }
+
+    fun `test a first window from outside the last session stops the wait`() {
+        val reopening = ReopeningProjects()
+        reopening.expect(listOf(alpha, beta))
+
+        reopening.opened("/work/elsewhere")
+
+        assertEmpty(reopening.remaining(emptySet()))
+    }
+
     fun `test finishing drops everything still waiting`() {
         val reopening = ReopeningProjects()
         reopening.expect(listOf(alpha, beta))

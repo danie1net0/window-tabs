@@ -7,4 +7,8 @@ class WindowTabsNorthExtensionTest : WindowTabsTestCase() {
         assertEquals("WindowTabs", extension.key)
         assertInstanceOf(extension.createComponent(project, false), WindowTabsBar::class.java)
     }
+
+    fun `test a detached editor window gets no strip`() {
+        assertNull(WindowTabsNorthExtension().createComponent(project, true))
+    }
 }

@@ -19,15 +19,20 @@ import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
 import java.awt.Cursor
+import java.awt.Dialog
 import java.awt.GradientPaint
 import java.awt.Graphics
 import java.awt.Graphics2D
+import java.awt.KeyboardFocusManager
 import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
 import javax.swing.Box
 import javax.swing.Icon
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.ScrollPaneConstants
@@ -40,6 +45,18 @@ public class WindowTabsBar(
 ) : JPanel(BorderLayout()) {
     private val tabs = TabStrip()
     private var connection: Disposable? = null
+
+    /**
+     * A modal dialog opening mid-drag keeps the release from ever arriving, so the drag is called off then rather
+     * than leaving the strip frozen until the next press on a tab. Any other window becoming active, such as a frame
+     * the IDE reopens, still lets the release through and leaves the drag alone.
+     */
+    private val activeWindowChange =
+        PropertyChangeListener { change: PropertyChangeEvent ->
+            if ((change.newValue as? Dialog)?.isModal == true) {
+                callOffDrag()
+            }
+        }
 
     init {
         isOpaque = true
@@ -61,6 +78,9 @@ public class WindowTabsBar(
             .connect(disposable)
             .subscribe(WindowTabsListener.TOPIC, WindowTabsListener { rebuild() })
         connection = disposable
+        KeyboardFocusManager
+            .getCurrentKeyboardFocusManager()
+            .addPropertyChangeListener(ACTIVE_WINDOW, activeWindowChange)
 
         rebuild()
     }
@@ -68,6 +88,9 @@ public class WindowTabsBar(
     override fun removeNotify() {
         connection?.let { disposable: Disposable -> Disposer.dispose(disposable) }
         connection = null
+        KeyboardFocusManager
+            .getCurrentKeyboardFocusManager()
+            .removePropertyChangeListener(ACTIVE_WINDOW, activeWindowChange)
 
         super.removeNotify()
     }
@@ -96,8 +119,9 @@ public class WindowTabsBar(
         return scrollPane
     }
 
+    /** Waits while a tab is dragged: the drop refreshes the strips anyway, and new tabs now would strand the drag. */
     private fun rebuild() {
-        if (project.isDisposed) {
+        if (project.isDisposed || tabs.draggedTab != null) {
             return
         }
 
@@ -115,7 +139,19 @@ public class WindowTabsBar(
         repaint()
     }
 
-    private fun view(tab: WindowTab): JPanel =
+    /** Drops a drag whose release never came and catches up on the refreshes it held back. */
+    private fun callOffDrag() {
+        if (tabs.draggedTab == null) {
+            return
+        }
+
+        tabs.removeAll()
+        rebuild()
+    }
+
+    private fun view(tab: WindowTab): JPanel = panelFor(tab).apply { putClientProperty(KEY_PROPERTY, tab.key) }
+
+    private fun panelFor(tab: WindowTab): JPanel =
         when (tab) {
             is WindowTab.Open -> Tab(tab, tab.project == project)
             is WindowTab.Reopening -> Placeholder(tab)
@@ -128,17 +164,15 @@ public class WindowTabsBar(
         button.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
 
         button.addMouseListener(
-            object : MouseAdapter() {
-                override fun mouseClicked(event: MouseEvent) {
-                    val actionManager: ActionManager = ActionManager.getInstance()
-                    val openProject: AnAction? = actionManager.getAction(OPEN_PROJECT_ACTION)
+            LeftClick { event: MouseEvent ->
+                val actionManager: ActionManager = ActionManager.getInstance()
+                val openProject: AnAction? = actionManager.getAction(OPEN_PROJECT_ACTION)
 
-                    if (openProject == null) {
-                        return
-                    }
-
-                    actionManager.tryToExecute(openProject, event, button, ActionPlaces.TOOLBAR, true)
+                if (openProject == null) {
+                    return@LeftClick
                 }
+
+                actionManager.tryToExecute(openProject, event, button, ActionPlaces.TOOLBAR, true)
             },
         )
 
@@ -185,12 +219,9 @@ public class WindowTabsBar(
                         closeButton.icon = AllIcons.Actions.Close
                         updateHover(event)
                     }
-
-                    override fun mouseClicked(event: MouseEvent) {
-                        WindowTabsService.getInstance().close(target)
-                    }
                 },
             )
+            closeButton.addMouseListener(LeftClick { WindowTabsService.getInstance().close(target) })
             add(closeButton, BorderLayout.WEST)
             add(balance, BorderLayout.EAST)
 
@@ -200,27 +231,11 @@ public class WindowTabsBar(
 
                     override fun mouseExited(event: MouseEvent): Unit = updateHover(event)
 
-                    override fun mouseClicked(event: MouseEvent) {
-                        if (SwingUtilities.isMiddleMouseButton(event)) {
-                            WindowTabsService.getInstance().close(target)
-
-                            return
-                        }
-
-                        if (!SwingUtilities.isLeftMouseButton(event) || selected) {
-                            return
-                        }
-
-                        WindowTabsService.getInstance().switchTo(project, target)
-                    }
-
-                    override fun mousePressed(event: MouseEvent) {
-                        grabX = event.x
-                    }
+                    override fun mousePressed(event: MouseEvent): Unit = press(event)
 
                     override fun mouseDragged(event: MouseEvent): Unit = drag(event)
 
-                    override fun mouseReleased(event: MouseEvent): Unit = drop()
+                    override fun mouseReleased(event: MouseEvent): Unit = release(event)
                 }
             addMouseListener(mouseHandler)
             addMouseMotionListener(mouseHandler)
@@ -231,16 +246,50 @@ public class WindowTabsBar(
                 return null
             }
 
-            val icon: Icon = RecentProjectsManagerBase.getInstanceEx().getProjectIcon(tab.key, true)
-
-            val initials: String = ProjectBadge.initialsOf(target.name)
-
-            return ProjectBadge(initials, ProjectBadge.colorOf(icon), JBUI.scale(ICON_SIZE), JBUI.scale(ICON_DROP))
+            return badgeOrOwnIcon()
         }
 
-        /** A press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
+        /**
+         * A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT and scales
+         * the unscaled size it is given.
+         */
+        private fun badgeOrOwnIcon(): Icon {
+            val manager: RecentProjectsManagerBase = RecentProjectsManagerBase.getInstanceEx()
+            val size: Int = JBUI.scale(ICON_SIZE)
+
+            if (ProjectBadge.hasOwnIcon(tab.key) { manager.hasCustomIcon(target) }) {
+                return manager.getProjectIcon(tab.key, true, ICON_SIZE, target.name)
+            }
+
+            val color: Color = ProjectBadge.colorFor(tab.key) { manager.getProjectIcon(tab.key, true) }
+
+            return ProjectBadge(ProjectBadge.initialsOf(target.name), color, size, JBUI.scale(ICON_DROP))
+        }
+
+        /**
+         * A press while another drag is still on means its release never came, as when a dialog took the mouse:
+         * that drag is called off and the strip catches up on what it skipped. Another button pressed mid-drag leaves
+         * the drag alone.
+         */
+        private fun press(event: MouseEvent) {
+            if (event.button != MouseEvent.BUTTON1) {
+                return
+            }
+
+            grabX = null
+
+            if (tabs.draggedTab != null) {
+                callOffDrag()
+
+                return
+            }
+
+            grabX = event.x
+        }
+
+        /** A left press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
         private fun drag(event: MouseEvent) {
-            val grab: Int = grabX ?: return
+            val grab: Int = grabX?.takeIf { _: Int -> SwingUtilities.isLeftMouseButton(event) } ?: return
             val started: Boolean = tabs.draggedTab === this
 
             if (!started && abs(event.x - grab) < JBUI.scale(DRAG_THRESHOLD)) {
@@ -251,19 +300,59 @@ public class WindowTabsBar(
             tabs.dragTo(this, point.x - grab)
         }
 
-        private fun drop() {
-            grabX = null
-            val index: Int = tabs.drop() ?: return
+        /**
+         * Ends a drag, or acts as a click. A click is taken on release rather than from AWT's click event,
+         * which X11 drops once the mouse moves a few pixels, short of the distance that starts a drag.
+         * No click while a drag is on, nor on a tab the strip replaced while the button was down.
+         */
+        private fun release(event: MouseEvent) {
+            if (event.button == MouseEvent.BUTTON1 && endDrag()) {
+                return
+            }
 
-            WindowTabsService.getInstance().move(tab.key, index)
+            if (tabs.draggedTab != null || parent !== tabs || !contains(event.point)) {
+                return
+            }
+
+            click(event)
         }
 
+        /** Drops this tab in front of the tab that ends up after it, the one the user can see it land before. */
+        private fun endDrag(): Boolean {
+            grabX = null
+            val index: Int = tabs.drop(this) ?: return false
+            val next: String? =
+                tabs.components.getOrNull(index + 1)?.let { view: Component ->
+                    (view as JComponent).getClientProperty(KEY_PROPERTY) as String
+                }
+
+            WindowTabsService.getInstance().move(project, tab.key, next)
+
+            return true
+        }
+
+        private fun click(event: MouseEvent) {
+            if (event.button == MouseEvent.BUTTON2) {
+                WindowTabsService.getInstance().close(target)
+
+                return
+            }
+
+            if (event.button != MouseEvent.BUTTON1 || selected) {
+                return
+            }
+
+            WindowTabsService.getInstance().switchTo(project, target)
+        }
+
+        /** Hiding a child only invalidates, so the tab lays out again or the title keeps the close button's room. */
         private fun updateHover(event: MouseEvent) {
             val point: Point = SwingUtilities.convertPoint(event.component, event.point, this)
             hovered = contains(point)
             closeButton.isVisible = hovered
             balance.isVisible = hovered
 
+            revalidate()
             repaint()
         }
 
@@ -280,12 +369,13 @@ public class WindowTabsBar(
             paintSeparator(graphics)
         }
 
-        override fun getBackground(): Color =
-            when {
-                selected -> selectedBackground()
-                hovered -> hoveredBackground()
-                else -> recessedBackground()
+        override fun getBackground(): Color {
+            if (selected) {
+                return selectedBackground()
             }
+
+            return unselectedBackground(hovered)
+        }
     }
 
     private class Placeholder(
@@ -319,6 +409,11 @@ public class WindowTabsBar(
     public companion object {
         public const val OPEN_PROJECT_ACTION: String = "OpenFile"
 
+        private const val ACTIVE_WINDOW: String = "activeWindow"
+
+        /** Each tab's key, so a drop can name the tab it lands in front of. */
+        private const val KEY_PROPERTY: String = "windowTabs.key"
+
         private const val PLUS_PADDING: Int = 10
         private const val TAB_VERTICAL_PADDING: Int = 6
         private const val TAB_HORIZONTAL_PADDING: Int = 8
@@ -350,7 +445,13 @@ public class WindowTabsBar(
 
         private fun recessedBackground(): Color = ColorUtil.alphaBlending(RECESS_SHADE, selectedBackground())
 
-        private fun hoveredBackground(): Color = ColorUtil.mix(recessedBackground(), selectedBackground(), HOVER_MIX)
+        private fun unselectedBackground(hovered: Boolean): Color {
+            if (hovered) {
+                return ColorUtil.mix(recessedBackground(), selectedBackground(), HOVER_MIX)
+            }
+
+            return recessedBackground()
+        }
 
         /** The tabs behind the selected one sit under a line and a soft shadow cast by the toolbar. */
         private fun JPanel.paintTopEdge(graphics: Graphics) {

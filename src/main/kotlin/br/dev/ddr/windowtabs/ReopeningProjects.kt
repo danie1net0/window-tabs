@@ -10,8 +10,12 @@ import com.intellij.ide.RecentProjectsManagerBase
  */
 public class ReopeningProjects {
     private val waiting = mutableListOf<WindowTab.Reopening>()
+    private var expected: Set<String> = emptySet()
+    private var anyOpened = false
 
     public fun expect(projects: List<WindowTab.Reopening>) {
+        anyOpened = false
+        expected = projects.map { project: WindowTab.Reopening -> project.key }.toSet()
         waiting.clear()
         waiting.addAll(projects)
     }
@@ -21,6 +25,22 @@ public class ReopeningProjects {
         waiting.removeAll { project: WindowTab.Reopening -> project.key in openKeys }
 
         return waiting.toList()
+    }
+
+    /**
+     * When the first window to open is not one of the last session's, the IDE was started with a project of its own
+     * and is not reopening the session, so nothing more is coming. [key] is checked against the whole session, not
+     * what is still waiting: the window's own strip already took it off.
+     */
+    public fun opened(key: String) {
+        val first: Boolean = !anyOpened
+        anyOpened = true
+
+        if (!first || key in expected) {
+            return
+        }
+
+        waiting.clear()
     }
 
     public fun finish() {

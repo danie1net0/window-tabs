@@ -1,6 +1,7 @@
 package br.dev.ddr.windowtabs
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TabOrderTest {
@@ -41,11 +42,88 @@ class TabOrderTest {
         val order = TabOrder { keys: List<String> -> reported.add(keys) }
         order.sync(listOf("a", "b", "c"))
 
-        order.move("c", 0)
-        order.move("a", 99)
+        order.move("c", "a")
+        order.move("a", null)
 
         assertEquals(listOf("c", "b", "a"), order.sync(listOf("a", "b", "c")))
         assertEquals(listOf(listOf("a", "b", "c"), listOf("c", "a", "b"), listOf("c", "b", "a")), reported)
+    }
+
+    @Test
+    fun `keeps the place of projects closed one by one, as when the IDE quits`() {
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(listOf("c", "a", "b")) { keys: List<String> -> reported.add(keys) }
+        order.sync(listOf("a", "b", "c"))
+
+        order.sync(listOf("a", "b"))
+        order.sync(listOf("b"))
+        order.sync(emptyList())
+
+        assertEquals(emptyList<List<String>>(), reported)
+        assertEquals(listOf("c", "a", "b"), TabOrder(listOf("c", "a", "b")).sync(listOf("b", "a", "c")))
+    }
+
+    @Test
+    fun `moves among the open tabs around the closed ones it remembers`() {
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(listOf("a", "gone", "b", "c")) { keys: List<String> -> reported.add(keys) }
+        order.sync(listOf("a", "b", "c"))
+
+        order.move("a", "c")
+        assertEquals(listOf("b", "a", "c"), order.sync(listOf("a", "b", "c")))
+
+        order.move("c", "b")
+        assertEquals(listOf("c", "b", "a"), order.sync(listOf("a", "b", "c")))
+        assertEquals(listOf("gone", "c", "b", "a"), reported.last())
+    }
+
+    @Test
+    fun `a single open tab stays put`() {
+        val order = TabOrder(listOf("gone", "a"))
+        order.sync(listOf("a"))
+
+        order.move("a", null)
+
+        assertEquals(listOf("a"), order.sync(listOf("a")))
+    }
+
+    @Test
+    fun `forgets the longest-closed projects past the limit`() {
+        val closed: List<String> = (1..TabOrder.MAXIMUM_REMEMBERED).map { number: Int -> "closed$number" }
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(closed) { keys: List<String> -> reported.add(keys) }
+
+        assertEquals(listOf("a", "b"), order.sync(listOf("a", "b")))
+
+        val kept: List<String> = reported.single()
+        assertEquals(TabOrder.MAXIMUM_REMEMBERED, kept.size)
+        assertEquals(listOf("closed3", "closed4"), kept.take(2))
+        assertEquals(listOf("a", "b"), kept.takeLast(2))
+    }
+
+    @Test
+    fun `an anchor it never heard of puts the tab last`() {
+        val order = TabOrder()
+        order.sync(listOf("a", "b", "c"))
+
+        order.move("a", "unknown")
+
+        assertEquals(listOf("b", "c", "a"), order.sync(listOf("a", "b", "c")))
+    }
+
+    @Test
+    fun `a project closed during this run outlives older closed ones past the limit`() {
+        val older: List<String> = (1..TabOrder.MAXIMUM_REMEMBERED - 2).map { number: Int -> "older$number" }
+        val reported = mutableListOf<List<String>>()
+        val order = TabOrder(older) { keys: List<String> -> reported.add(keys) }
+        order.sync(listOf("a", "b"))
+        order.sync(listOf("b"))
+
+        order.sync(listOf("b", "c"))
+
+        assertEquals(TabOrder.MAXIMUM_REMEMBERED, reported.last().size)
+        assertEquals("older2", reported.last().first())
+        assertTrue("a" in reported.last())
     }
 
     @Test
@@ -54,8 +132,9 @@ class TabOrderTest {
         val order = TabOrder(listOf("a", "b")) { keys: List<String> -> reported.add(keys) }
 
         order.sync(listOf("a", "b"))
-        order.move("a", 0)
-        order.move("missing", 1)
+        order.move("a", "b")
+        order.move("a", "a")
+        order.move("missing", "a")
 
         assertEquals(emptyList<List<String>>(), reported)
     }

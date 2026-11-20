@@ -11,10 +11,13 @@ public sealed interface WindowTab {
         public val project: Project,
     ) : WindowTab {
         /**
-         * The project's path, the same string the IDE keeps for it in the last session.
-         * Only the default project has no path, and it never gets a window.
+         * The path the IDE keeps for the project among its recent ones, so it matches the last session's entry:
+         * the folder, or the .ipr file of a project kept in one. A project without a location falls back to its folder.
          */
-        override val key: String = project.basePath.toString()
+        override val key: String =
+            FileUtilRt.toSystemIndependentName(
+                project.presentableUrl ?: project.basePath.toString(),
+            )
     }
 
     public class Reopening(

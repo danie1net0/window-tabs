@@ -5,6 +5,29 @@ and versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Fixed
+
+- The saved tab order survives quitting the IDE, which closes its projects one by one.
+- Closing the last project from its tab brings the Welcome screen back instead of leaving the IDE with no window.
+- Switching to a project from a maximized window maximizes it on the same monitor.
+- A short click that moves the mouse a few pixels still switches tabs; only the left button drags.
+- The strip keeps where it was scrolled to when it refreshes, and waits for a drag to end before refreshing.
+- No dimmed tabs for the last session when the IDE starts with another project instead of reopening it.
+- The badge colour no longer depends on whether the IDE had already drawn the project icon, is worked out once per
+  project, and a broken project icon no longer empties the strip. A project's own icon shows as drawn, at the tab's size.
+- A drag whose release never arrives, as when a dialog opens mid-drag, is called off by the next press or as soon as
+  a modal dialog comes up, instead of freezing the strip.
+- A project whose window is still opening keeps its dimmed tab in the other windows until the IDE lists it.
+- Switching between two maximized windows on the same monitor keeps the target's restore size.
+- The close and plus buttons react to the left button only, and to a click that moves a few pixels.
+- Projects kept in an .ipr file match their last-session entry, so they no longer show twice while the IDE reopens.
+- The saved tab order keeps at most 100 projects, forgetting the ones closed longest ago first.
+- A drop lands in front of the tab the user saw, even if a tab opened or closed during the drag.
+- Pressing another mouse button mid-drag neither drops the tab nor clicks, and the tab keeps following the mouse.
+- Detached editor windows no longer get a strip of their own.
+- A tab's title gets its full width back when the mouse leaves it.
+- Refreshing the strip no longer checks the disk for project icons each time.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added

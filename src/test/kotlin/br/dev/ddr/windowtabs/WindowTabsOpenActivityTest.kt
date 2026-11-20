@@ -30,9 +30,12 @@ class WindowTabsOpenActivityTest : WindowTabsTestCase() {
     }
 
     fun `test the reopen ends once no project has opened for a while`() {
-        WindowTabsService.getInstance().expectReopening(listOf(WindowTab.Reopening("/work/missing", "missing")))
+        val own = WindowTab.Reopening(keyOf(project), "own")
+        val waiting = listOf(own, WindowTab.Reopening("/work/missing", "missing"))
+        WindowTabsService.getInstance().expectReopening(waiting)
 
         runBlocking { WindowTabsOpenActivity().execute(project) }
+        dispatchEvents()
         assertEquals(2, WindowTabsService.getInstance().tabs(project).size)
 
         scheduled.single().run()
@@ -44,6 +47,9 @@ class WindowTabsOpenActivityTest : WindowTabsTestCase() {
     fun `test each new window pushes the end of the reopen back`() {
         runBlocking { WindowTabsOpenActivity().execute(project) }
         runBlocking { WindowTabsOpenActivity().execute(project) }
+        assertEquals(0, scheduled.size)
+
+        dispatchEvents()
 
         assertEquals(2, scheduled.size)
         assertTrue(futures.first().isCancelled)

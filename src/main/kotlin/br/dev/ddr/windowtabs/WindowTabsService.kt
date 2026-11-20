@@ -10,19 +10,17 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.openapi.wm.impl.welcomeScreen.WelcomeFrame
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.awt.Frame
-import java.awt.Rectangle
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import javax.swing.JFrame
 
 @Service(Service.Level.APP)
 public class WindowTabsService {
-    private val order =
-        TabOrder(WindowTabsSettings.getInstance().state.tabOrder) { keys: List<String> ->
-            WindowTabsSettings.getInstance().state.tabOrder = keys.toMutableList()
-        }
+    /** The service outlives each test while the settings do not, so tests load the order again. */
+    internal var order: TabOrder = savedOrder()
     private val reopening = ReopeningProjects()
 
     /**
@@ -45,19 +43,29 @@ public class WindowTabsService {
         reopening.expect(ReopeningProjects.fromLastSession())
     }
 
-    /** [current] counts as open before ProjectManager lists it, so a window never shows itself as a placeholder. */
+    /**
+     * [current] counts as open before ProjectManager lists it, so a window never shows itself as a placeholder.
+     * Its placeholder is only dropped for good once it is listed: until then the other windows still show it.
+     */
     public fun tabs(current: Project): List<WindowTab> {
-        val openProjects: List<Project> = ProjectManager.getInstance().openProjects.toList() + current
+        val listedProjects: List<Project> = ProjectManager.getInstance().openProjects.toList()
+        val listedKeys: Set<String> = listedProjects.map { project: Project -> WindowTab.Open(project).key }.toSet()
 
-        return tabsOf(openProjects.distinct())
+        return tabsOf((listedProjects + current).distinct(), listedKeys)
     }
 
-    private fun tabsOf(openProjects: List<Project>): List<WindowTab> {
+    private fun tabsOf(
+        openProjects: List<Project>,
+        listedKeys: Set<String>,
+    ): List<WindowTab> {
         val byKey = mutableMapOf<String, WindowTab>()
         openProjects
             .map { project: Project -> WindowTab.Open(project) }
             .forEach { tab: WindowTab.Open -> byKey[tab.key] = tab }
-        reopening.remaining(byKey.keys).forEach { tab: WindowTab.Reopening -> byKey[tab.key] = tab }
+        reopening
+            .remaining(listedKeys)
+            .filterNot { tab: WindowTab.Reopening -> tab.key in byKey }
+            .forEach { tab: WindowTab.Reopening -> byKey[tab.key] = tab }
 
         return order.sync(byKey.keys.toList()).map { key: String -> byKey.getValue(key) }
     }
@@ -68,13 +76,17 @@ public class WindowTabsService {
         return StripVisibility.shows(tabCount, options, isMac)
     }
 
+    /**
+     * [current] is the window the drag happened in, which may be open before ProjectManager lists it. The tabs are
+     * synced first: the order only knows the keys it has synced, and a drag may come before any strip asked for them.
+     */
     public fun move(
+        current: Project,
         key: String,
-        index: Int,
+        before: String?,
     ) {
-        // The order only knows the keys it has synced; a drag may come before any strip asked for its tabs.
-        tabsOf(ProjectManager.getInstance().openProjects.toList())
-        order.move(key, index)
+        tabs(current)
+        order.move(key, before)
         notifyChanged()
     }
 
@@ -82,16 +94,31 @@ public class WindowTabsService {
         reopening.expect(projects)
     }
 
-    /** A project window is up: refresh the strips and wait for the next one before calling the reopen over. */
-    public fun projectOpened() {
-        notifyChanged()
-        pendingReopenEnd?.cancel(false)
-        pendingReopenEnd = scheduleReopenEnd(Runnable { reopenFinished() })
+    /**
+     * A project window is up: refresh the strips and wait for the next one before calling the reopen over.
+     * Startup activities of several projects run on background threads at once, so the timer is handled on the EDT.
+     */
+    public fun projectOpened(project: Project) {
+        ApplicationManager.getApplication().invokeLater(
+            {
+                reopening.opened(WindowTab.Open(project).key)
+                notifyChanged()
+                pendingReopenEnd?.cancel(false)
+                pendingReopenEnd = scheduleReopenEnd(Runnable { reopenFinished() })
+            },
+            ModalityState.any(),
+        )
     }
 
+    /** Runs on the EDT, where the strips read the placeholders, even when the timer fires on a pool thread. */
     public fun reopenFinished() {
-        reopening.finish()
-        notifyChanged()
+        ApplicationManager.getApplication().invokeLater(
+            {
+                reopening.finish()
+                notifyChanged()
+            },
+            ModalityState.any(),
+        )
     }
 
     /** Refreshes the strips even under a modal dialog or progress, which the IDE may show while it reopens projects. */
@@ -112,6 +139,7 @@ public class WindowTabsService {
         focusWindow(target)
     }
 
+    /** A target already maximized where it belongs stays put: new bounds would overwrite its restore size. */
     private fun placeOver(
         current: Project,
         target: Project,
@@ -124,12 +152,19 @@ public class WindowTabsService {
             return
         }
 
-        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds)
+        val sameScreen: Boolean = source.graphicsConfiguration.device == destination.graphicsConfiguration.device
+
+        if (FramePlacement.alreadyInPlace(source.extendedState, destination.extendedState, sameScreen)) {
+            return
+        }
+
         destination.extendedState = Frame.NORMAL
-        placement.bounds?.let { bounds: Rectangle -> destination.bounds = bounds }
+        val placement: FramePlacement = FramePlacement.matching(source.extendedState, source.bounds, destination.size)
+        destination.bounds = placement.bounds
         destination.extendedState = placement.extendedState
     }
 
+    /** Brings the Welcome screen back once no project is left, as the platform's own close actions do. */
     public fun close(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             if (project.isDisposed) {
@@ -137,6 +172,7 @@ public class WindowTabsService {
             }
 
             ProjectManager.getInstance().closeAndDispose(project)
+            WelcomeFrame.showIfNoProjectOpened()
         }
     }
 
@@ -145,5 +181,10 @@ public class WindowTabsService {
         private const val REOPEN_QUIET_SECONDS: Long = 30L
 
         public fun getInstance(): WindowTabsService = service()
+
+        internal fun savedOrder(): TabOrder =
+            TabOrder(WindowTabsSettings.getInstance().state.tabOrder) { keys: List<String> ->
+                WindowTabsSettings.getInstance().state.tabOrder = keys.toMutableList()
+            }
     }
 }
