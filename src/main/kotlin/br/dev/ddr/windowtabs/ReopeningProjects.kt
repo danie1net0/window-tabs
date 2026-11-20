@@ -29,13 +29,13 @@ public class ReopeningProjects {
 
     /**
      * When the first window to open is not one of the last session's, the IDE was started with a project of its own
-     * and is not reopening the session, so nothing more is coming.
+     * and is not reopening the session, so nothing more is coming. [key] is checked against the whole session, not
+     * what is still waiting: the window's own strip already took it off.
      */
     public fun opened(key: String) {
         val first: Boolean = !anyOpened
         anyOpened = true
 
-        // Checked against the whole session, not what is still waiting: the window's own strip already took it off.
         if (!first || key in expected) {
             return
         }

@@ -36,14 +36,14 @@ public class ProjectBadge(
     override fun paintIcon(
         component: Component?,
         graphics: Graphics,
-        x: Int,
-        y: Int,
+        left: Int,
+        top: Int,
     ) {
         val badge: Graphics2D = graphics.create() as Graphics2D
         badge.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         badge.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         badge.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
-        badge.translate(x, y + 2 * drop)
+        badge.translate(left, top + 2 * drop)
 
         val side: Float = size.toFloat()
         val arc: Float = side * ARC_RATIO
@@ -53,17 +53,17 @@ public class ProjectBadge(
         val font: Font = JBUI.Fonts.label().deriveFont(Font.BOLD, side * FONT_RATIO)
         val glyphs: GlyphVector = font.createGlyphVector(badge.fontRenderContext, initials)
         val outline: Rectangle2D = glyphs.visualBounds
-        val left: Float = (side / 2 - outline.centerX).toFloat()
+        val glyphsLeft: Float = (side / 2 - outline.centerX).toFloat()
         val baseline: Float = (side / 2 - outline.centerY).toFloat()
         badge.color = Color.WHITE
-        badge.drawGlyphVector(glyphs, left, baseline)
+        badge.drawGlyphVector(glyphs, glyphsLeft, baseline)
         badge.dispose()
     }
 
     public companion object {
         private const val ARC_RATIO: Float = 0.45f
         private const val FONT_RATIO: Float = 0.5f
-        private const val MAX_INITIALS: Int = 2
+        private const val MAXIMUM_INITIALS: Int = 2
 
         private val colors: MutableMap<String, Color> = ConcurrentHashMap()
         private val ownIcons: MutableMap<String, Boolean> = ConcurrentHashMap()
@@ -91,7 +91,7 @@ public class ProjectBadge(
             name
                 .split(Regex("[^\\p{L}\\p{N}]+"))
                 .filter { word: String -> word.isNotEmpty() }
-                .take(MAX_INITIALS)
+                .take(MAXIMUM_INITIALS)
                 .joinToString("") { word: String -> word.first().uppercase() }
 
         /**
@@ -100,11 +100,7 @@ public class ProjectBadge(
          * The IDE hands out a deferred icon that paints nothing until computed, so it is computed here first.
          */
         public fun colorOf(icon: Icon): Color {
-            val solid: Icon =
-                when (icon) {
-                    is DeferredIcon -> icon.evaluate()
-                    else -> icon
-                }
+            val solid: Icon = evaluated(icon)
             val image = BufferedImage(solid.iconWidth, solid.iconHeight, BufferedImage.TYPE_INT_ARGB)
             val imageGraphics: Graphics2D = image.createGraphics()
             solid.paintIcon(null, imageGraphics, 0, 0)
@@ -119,6 +115,14 @@ public class ProjectBadge(
                 (left.blue + right.blue) / 2,
                 minOf(left.alpha, right.alpha),
             )
+        }
+
+        private fun evaluated(icon: Icon): Icon {
+            if (icon is DeferredIcon) {
+                return icon.evaluate()
+            }
+
+            return icon
         }
 
         /** One pixel in, past any antialiased rim. */

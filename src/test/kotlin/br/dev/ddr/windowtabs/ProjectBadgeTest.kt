@@ -23,10 +23,10 @@ class ProjectBadgeTest {
     /** Where the white letters are, as the bounds of every pixel that is mostly white. */
     private fun lettersOf(image: BufferedImage): IntArray {
         val white: List<Pair<Int, Int>> =
-            (0 until image.width).flatMap { x: Int ->
+            (0 until image.width).flatMap { column: Int ->
                 (0 until image.height)
-                    .filter { y: Int -> Color(image.getRGB(x, y), true).red > 160 }
-                    .map { y: Int -> x to y }
+                    .filter { row: Int -> Color(image.getRGB(column, row), true).red > 160 }
+                    .map { row: Int -> column to row }
             }
 
         return intArrayOf(
@@ -103,13 +103,13 @@ class ProjectBadgeTest {
                 override fun paintIcon(
                     component: Component?,
                     graphics: Graphics,
-                    x: Int,
-                    y: Int,
+                    left: Int,
+                    top: Int,
                 ) {
                     graphics.color = Color.MAGENTA
-                    graphics.fillRect(x, y, iconWidth, iconHeight)
+                    graphics.fillRect(left, top, iconWidth, iconHeight)
                     graphics.color = Color.WHITE
-                    graphics.fillRect(x + 6, y + 3, 8, 6)
+                    graphics.fillRect(left + 6, top + 3, 8, 6)
                 }
             }
 
@@ -145,13 +145,13 @@ class ProjectBadgeTest {
             override fun paintIcon(
                 component: Component?,
                 graphics: Graphics,
-                x: Int,
-                y: Int,
+                left: Int,
+                top: Int,
             ) {
                 graphics.color = Color(100, 0, 200)
-                graphics.fillRect(x, y, 5, iconHeight)
+                graphics.fillRect(left, top, 5, iconHeight)
                 graphics.color = right
-                graphics.fillRect(x + 5, y, 5, iconHeight)
+                graphics.fillRect(left + 5, top, 5, iconHeight)
             }
         }
 

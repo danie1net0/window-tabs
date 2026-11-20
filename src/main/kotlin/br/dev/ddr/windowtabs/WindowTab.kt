@@ -1,6 +1,5 @@
 package br.dev.ddr.windowtabs
 
-import com.intellij.ide.RecentProjectsManagerBase
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtilRt
 
@@ -17,7 +16,7 @@ public sealed interface WindowTab {
          */
         override val key: String =
             FileUtilRt.toSystemIndependentName(
-                RecentProjectsManagerBase.getInstanceEx().getProjectPath(project) ?: project.basePath.toString(),
+                project.presentableUrl ?: project.basePath.toString(),
             )
     }
 

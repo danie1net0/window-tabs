@@ -217,12 +217,14 @@ public class WindowTabsBar(
             return badgeOrOwnIcon()
         }
 
+        /**
+         * A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT and scales
+         * the unscaled size it is given.
+         */
         private fun badgeOrOwnIcon(): Icon {
             val manager: RecentProjectsManagerBase = RecentProjectsManagerBase.getInstanceEx()
             val size: Int = JBUI.scale(ICON_SIZE)
 
-            // A project's own icon (.idea/icon.svg) shows as drawn; the deferred icon loads it off the EDT and scales
-            // the unscaled size it is given.
             if (ProjectBadge.hasOwnIcon(tab.key) { manager.hasCustomIcon(target) }) {
                 return manager.getProjectIcon(tab.key, true, ICON_SIZE, target.name)
             }
@@ -269,13 +271,13 @@ public class WindowTabsBar(
         /**
          * Ends a drag, or acts as a click. A click is taken on release rather than from AWT's click event,
          * which X11 drops once the mouse moves a few pixels, short of the distance that starts a drag.
+         * No click while a drag is on, nor on a tab the strip replaced while the button was down.
          */
         private fun release(event: MouseEvent) {
             if (event.button == MouseEvent.BUTTON1 && endDrag()) {
                 return
             }
 
-            // No click while a drag is on, nor on a tab the strip replaced while the button was down.
             if (tabs.draggedTab != null || parent !== tabs || !contains(event.point)) {
                 return
             }
@@ -311,13 +313,13 @@ public class WindowTabsBar(
             WindowTabsService.getInstance().switchTo(project, target)
         }
 
+        /** Hiding a child only invalidates, so the tab lays out again or the title keeps the close button's room. */
         private fun updateHover(event: MouseEvent) {
             val point: Point = SwingUtilities.convertPoint(event.component, event.point, this)
             hovered = contains(point)
             closeButton.isVisible = hovered
             balance.isVisible = hovered
 
-            // Hiding a child only invalidates; without this the title keeps the room the close button took.
             revalidate()
             repaint()
         }
@@ -335,12 +337,13 @@ public class WindowTabsBar(
             paintSeparator(graphics)
         }
 
-        override fun getBackground(): Color =
-            when {
-                selected -> selectedBackground()
-                hovered -> hoveredBackground()
-                else -> recessedBackground()
+        override fun getBackground(): Color {
+            if (selected) {
+                return selectedBackground()
             }
+
+            return unselectedBackground(hovered)
+        }
     }
 
     private class Placeholder(
@@ -408,7 +411,13 @@ public class WindowTabsBar(
 
         private fun recessedBackground(): Color = ColorUtil.alphaBlending(RECESS_SHADE, selectedBackground())
 
-        private fun hoveredBackground(): Color = ColorUtil.mix(recessedBackground(), selectedBackground(), HOVER_MIX)
+        private fun unselectedBackground(hovered: Boolean): Color {
+            if (hovered) {
+                return ColorUtil.mix(recessedBackground(), selectedBackground(), HOVER_MIX)
+            }
+
+            return recessedBackground()
+        }
 
         /** The tabs behind the selected one sit under a line and a soft shadow cast by the toolbar. */
         private fun JPanel.paintTopEdge(graphics: Graphics) {

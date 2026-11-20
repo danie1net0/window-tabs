@@ -66,13 +66,15 @@ public class WindowTabsService {
         return StripVisibility.shows(tabCount, options, isMac)
     }
 
-    /** [current] is the window the drag happened in, which may be open before ProjectManager lists it. */
+    /**
+     * [current] is the window the drag happened in, which may be open before ProjectManager lists it. The tabs are
+     * synced first: the order only knows the keys it has synced, and a drag may come before any strip asked for them.
+     */
     public fun move(
         current: Project,
         key: String,
         before: String?,
     ) {
-        // The order only knows the keys it has synced; a drag may come before any strip asked for its tabs.
         tabs(current)
         order.move(key, before)
         notifyChanged()
@@ -127,6 +129,7 @@ public class WindowTabsService {
         focusWindow(target)
     }
 
+    /** A target already maximized where it belongs stays put: new bounds would overwrite its restore size. */
     private fun placeOver(
         current: Project,
         target: Project,
@@ -141,7 +144,6 @@ public class WindowTabsService {
 
         val sameScreen: Boolean = source.graphicsConfiguration.device == destination.graphicsConfiguration.device
 
-        // Already maximized where it belongs: setting its bounds would overwrite the size it restores to.
         if (FramePlacement.alreadyInPlace(source.extendedState, destination.extendedState, sameScreen)) {
             return
         }
@@ -152,6 +154,7 @@ public class WindowTabsService {
         destination.extendedState = placement.extendedState
     }
 
+    /** Brings the Welcome screen back once no project is left, as the platform's own close actions do. */
     public fun close(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             if (project.isDisposed) {
@@ -159,7 +162,6 @@ public class WindowTabsService {
             }
 
             ProjectManager.getInstance().closeAndDispose(project)
-            // The platform's own close actions bring the Welcome screen back once no project is left; so must this.
             WelcomeFrame.showIfNoProjectOpened()
         }
     }

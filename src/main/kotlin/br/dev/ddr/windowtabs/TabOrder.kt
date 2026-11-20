@@ -55,15 +55,10 @@ public class TabOrder(
     }
 
     private fun forgetSurplus(open: Set<String>) {
-        val surplus: Int = (keys.size - MAX_REMEMBERED).coerceAtLeast(0)
+        val surplus: Int = (keys.size - MAXIMUM_REMEMBERED).coerceAtLeast(0)
         val closedBefore: List<String> = keys.filterNot { key: String -> key in open || key in closedLately }
         keys.removeAll((closedBefore + closedLately).take(surplus).toSet())
         closedLately.retainAll(keys.toSet())
-    }
-
-    public companion object {
-        /** Past this many, the longest-closed projects make room, so the saved order does not grow forever. */
-        public const val MAX_REMEMBERED: Int = 100
     }
 
     private fun report(before: List<String>) {
@@ -72,5 +67,10 @@ public class TabOrder(
         }
 
         changed(keys.toList())
+    }
+
+    public companion object {
+        /** Past this many, the longest-closed projects make room, so the saved order does not grow forever. */
+        public const val MAXIMUM_REMEMBERED: Int = 100
     }
 }
