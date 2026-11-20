@@ -43,19 +43,29 @@ public class WindowTabsService {
         reopening.expect(ReopeningProjects.fromLastSession())
     }
 
-    /** [current] counts as open before ProjectManager lists it, so a window never shows itself as a placeholder. */
+    /**
+     * [current] counts as open before ProjectManager lists it, so a window never shows itself as a placeholder.
+     * Its placeholder is only dropped for good once it is listed: until then the other windows still show it.
+     */
     public fun tabs(current: Project): List<WindowTab> {
-        val openProjects: List<Project> = ProjectManager.getInstance().openProjects.toList() + current
+        val listedProjects: List<Project> = ProjectManager.getInstance().openProjects.toList()
+        val listedKeys: Set<String> = listedProjects.map { project: Project -> WindowTab.Open(project).key }.toSet()
 
-        return tabsOf(openProjects.distinct())
+        return tabsOf((listedProjects + current).distinct(), listedKeys)
     }
 
-    private fun tabsOf(openProjects: List<Project>): List<WindowTab> {
+    private fun tabsOf(
+        openProjects: List<Project>,
+        listedKeys: Set<String>,
+    ): List<WindowTab> {
         val byKey = mutableMapOf<String, WindowTab>()
         openProjects
             .map { project: Project -> WindowTab.Open(project) }
             .forEach { tab: WindowTab.Open -> byKey[tab.key] = tab }
-        reopening.remaining(byKey.keys).forEach { tab: WindowTab.Reopening -> byKey[tab.key] = tab }
+        reopening
+            .remaining(listedKeys)
+            .filterNot { tab: WindowTab.Reopening -> tab.key in byKey }
+            .forEach { tab: WindowTab.Reopening -> byKey[tab.key] = tab }
 
         return order.sync(byKey.keys.toList()).map { key: String -> byKey.getValue(key) }
     }

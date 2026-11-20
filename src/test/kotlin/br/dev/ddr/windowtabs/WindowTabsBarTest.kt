@@ -9,17 +9,23 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.awt.Color
 import java.awt.Component
+import java.awt.Dialog
 import java.awt.Frame
+import java.awt.KeyboardFocusManager
+import java.awt.Window
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseWheelEvent
 import java.awt.image.BufferedImage
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
 import java.nio.file.Files
 import javax.swing.JPanel
 import javax.swing.JScrollPane
@@ -78,6 +84,7 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         dispatchEvents()
 
         assertEquals(2, bar.tabs().size)
+        bar.removeNotify()
     }
 
     fun `test stops listening once removed`() {
@@ -165,6 +172,51 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertEquals(listOf(project, second), openProjects())
     }
 
+    fun `test a modal dialog going active calls a drag off`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        press(first, 10)
+        move(first, first.width / 2)
+        bar.addNotify()
+
+        activeWindowChanged(dialog(modal = true))
+
+        assertNull(bar.strip().draggedTab)
+        assertNotSame(first, bar.tabs()[0])
+        assertEquals(listOf(project, second), openProjects())
+        bar.removeNotify()
+        assertEmpty(activeWindowListeners())
+    }
+
+    fun `test a frame or modeless dialog going active leaves a drag on`() {
+        openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        press(first, 10)
+        move(first, first.width / 2)
+        bar.addNotify()
+
+        activeWindowChanged(null)
+        activeWindowChanged(fakeFrame())
+        activeWindowChanged(dialog(modal = false))
+
+        assertSame(first, bar.strip().draggedTab)
+        bar.removeNotify()
+    }
+
+    fun `test a modal dialog going active leaves the strip alone without a drag`() {
+        openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        bar.addNotify()
+        val first = bar.tabs()[0]
+
+        activeWindowChanged(dialog(modal = true))
+
+        assertSame(first, bar.tabs()[0])
+        bar.removeNotify()
+    }
+
     fun `test letting go over a tab the strip has since replaced does nothing`() {
         val other = openAnotherProject("other")
         val windowManager = fakeWindowManager()
@@ -199,6 +251,23 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         assertSame(first, bar.strip().draggedTab)
         verifyNoInteractions(windowManager)
         assertEquals(listOf(project, second), openProjects())
+    }
+
+    fun `test pressing another button mid-drag keeps the tab following the mouse`() {
+        val second = openAnotherProject("second")
+        val bar = laidOut(WindowTabsBar(project))
+        val first = bar.tabs()[0]
+        val width: Int = first.width
+        press(first, 10)
+        move(first, width / 2)
+        val held: Int = MouseEvent.BUTTON1_DOWN_MASK or MouseEvent.BUTTON3_DOWN_MASK
+        val chordPress = MouseEvent(first, MouseEvent.MOUSE_PRESSED, 0, held, 20, 5, 1, false, MouseEvent.BUTTON3)
+
+        first.dispatchEvent(chordPress)
+        move(first, width + 10)
+        release(first, MouseEvent.BUTTON1, width + 10)
+
+        assertEquals(listOf(second, project), openProjects())
     }
 
     fun `test dropping a tab between two others lands it in front of the next one`() {
@@ -506,6 +575,28 @@ class WindowTabsBarTest : WindowTabsTestCase() {
         val pressed: Int = MouseEvent.BUTTON1_DOWN_MASK
         val button: Int = MouseEvent.BUTTON1
         tab.dispatchEvent(MouseEvent(tab, MouseEvent.MOUSE_DRAGGED, 0, pressed, position, 5, 0, false, button))
+    }
+
+    /** Only the strip's own listeners: the IDE's would react to a made-up window change. */
+    private fun activeWindowListeners(): List<PropertyChangeListener> =
+        KeyboardFocusManager
+            .getCurrentKeyboardFocusManager()
+            .getPropertyChangeListeners("activeWindow")
+            .filter { listener: PropertyChangeListener ->
+                listener.javaClass.name.startsWith(WindowTabsBar::class.java.name)
+            }
+
+    private fun dialog(modal: Boolean): Dialog {
+        val dialog = mock(Dialog::class.java)
+        `when`(dialog.isModal).thenReturn(modal)
+
+        return dialog
+    }
+
+    private fun activeWindowChanged(window: Window?) {
+        val focusManager: KeyboardFocusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager()
+        val change = PropertyChangeEvent(focusManager, "activeWindow", null, window)
+        activeWindowListeners().forEach { listener: PropertyChangeListener -> listener.propertyChange(change) }
     }
 
     /** Lays the bar out by hand, as a headless test has no peer to do it; the viewport sizes the strip itself. */

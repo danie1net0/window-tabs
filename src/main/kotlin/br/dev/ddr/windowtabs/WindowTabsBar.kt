@@ -19,13 +19,17 @@ import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
 import java.awt.Cursor
+import java.awt.Dialog
 import java.awt.GradientPaint
 import java.awt.Graphics
 import java.awt.Graphics2D
+import java.awt.KeyboardFocusManager
 import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
 import javax.swing.Box
 import javax.swing.Icon
 import javax.swing.JComponent
@@ -41,6 +45,18 @@ public class WindowTabsBar(
 ) : JPanel(BorderLayout()) {
     private val tabs = TabStrip()
     private var connection: Disposable? = null
+
+    /**
+     * A modal dialog opening mid-drag keeps the release from ever arriving, so the drag is called off then rather
+     * than leaving the strip frozen until the next press on a tab. Any other window becoming active, such as a frame
+     * the IDE reopens, still lets the release through and leaves the drag alone.
+     */
+    private val activeWindowChange =
+        PropertyChangeListener { change: PropertyChangeEvent ->
+            if ((change.newValue as? Dialog)?.isModal == true) {
+                callOffDrag()
+            }
+        }
 
     init {
         isOpaque = true
@@ -62,6 +78,9 @@ public class WindowTabsBar(
             .connect(disposable)
             .subscribe(WindowTabsListener.TOPIC, WindowTabsListener { rebuild() })
         connection = disposable
+        KeyboardFocusManager
+            .getCurrentKeyboardFocusManager()
+            .addPropertyChangeListener(ACTIVE_WINDOW, activeWindowChange)
 
         rebuild()
     }
@@ -69,6 +88,9 @@ public class WindowTabsBar(
     override fun removeNotify() {
         connection?.let { disposable: Disposable -> Disposer.dispose(disposable) }
         connection = null
+        KeyboardFocusManager
+            .getCurrentKeyboardFocusManager()
+            .removePropertyChangeListener(ACTIVE_WINDOW, activeWindowChange)
 
         super.removeNotify()
     }
@@ -115,6 +137,16 @@ public class WindowTabsBar(
 
         revalidate()
         repaint()
+    }
+
+    /** Drops a drag whose release never came and catches up on the refreshes it held back. */
+    private fun callOffDrag() {
+        if (tabs.draggedTab == null) {
+            return
+        }
+
+        tabs.removeAll()
+        rebuild()
     }
 
     private fun view(tab: WindowTab): JPanel = panelFor(tab).apply { putClientProperty(KEY_PROPERTY, tab.key) }
@@ -236,18 +268,18 @@ public class WindowTabsBar(
 
         /**
          * A press while another drag is still on means its release never came, as when a dialog took the mouse:
-         * that drag is called off and the strip catches up on what it skipped.
+         * that drag is called off and the strip catches up on what it skipped. Another button pressed mid-drag leaves
+         * the drag alone.
          */
         private fun press(event: MouseEvent) {
-            grabX = null
-
             if (event.button != MouseEvent.BUTTON1) {
                 return
             }
 
+            grabX = null
+
             if (tabs.draggedTab != null) {
-                tabs.removeAll()
-                rebuild()
+                callOffDrag()
 
                 return
             }
@@ -255,9 +287,9 @@ public class WindowTabsBar(
             grabX = event.x
         }
 
-        /** A press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
+        /** A left press that moves far enough sideways becomes a drag, and from then on the tab follows the mouse. */
         private fun drag(event: MouseEvent) {
-            val grab: Int = grabX ?: return
+            val grab: Int = grabX?.takeIf { _: Int -> SwingUtilities.isLeftMouseButton(event) } ?: return
             val started: Boolean = tabs.draggedTab === this
 
             if (!started && abs(event.x - grab) < JBUI.scale(DRAG_THRESHOLD)) {
@@ -376,6 +408,8 @@ public class WindowTabsBar(
 
     public companion object {
         public const val OPEN_PROJECT_ACTION: String = "OpenFile"
+
+        private const val ACTIVE_WINDOW: String = "activeWindow"
 
         /** Each tab's key, so a drop can name the tab it lands in front of. */
         private const val KEY_PROPERTY: String = "windowTabs.key"

@@ -75,6 +75,17 @@ class WindowTabsServiceTest : WindowTabsTestCase() {
         assertEquals(listOf(project, gone), tabs.map { tab: WindowTab -> (tab as WindowTab.Open).project })
     }
 
+    fun `test other windows keep the placeholder of a window ProjectManager does not list yet`() {
+        val gone = closedProject()
+        service.expectReopening(listOf(WindowTab.Reopening(keyOf(gone), "closed")))
+        service.tabs(gone)
+
+        val tabs = service.tabs(project)
+
+        assertEquals(listOf(keyOf(project), keyOf(gone)), tabs.map { tab: WindowTab -> tab.key })
+        assertInstanceOf(tabs[1], WindowTab.Reopening::class.java)
+    }
+
     fun `test finishing the reopen drops what never opened and refreshes`() {
         service.expectReopening(listOf(WindowTab.Reopening("/work/missing", "missing")))
         val calls = recordTabsChanged()
